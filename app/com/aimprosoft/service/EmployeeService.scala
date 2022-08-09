@@ -1,7 +1,7 @@
-package com.aimprosoft.tagless.service
+package com.aimprosoft.service
 
 import com.aimprosoft.model.{Department, Employee, EmployeeFull, Id, TIdentity}
-import com.aimprosoft.tagless.BasicActionLang
+import com.aimprosoft.lang.BasicActionLang
 import cats.Monad
 import cats.data.OptionT
 import com.google.inject.Inject

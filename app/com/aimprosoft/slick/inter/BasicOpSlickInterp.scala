@@ -1,9 +1,9 @@
-package com.aimprosoft.slick.tagless
+package com.aimprosoft.slick.inter
 
 import com.aimprosoft.model._
 import com.aimprosoft.slick.databaseConfig.profile.api._
 import com.aimprosoft.slick.table.{DepartmentTable, EmployeeTable, TSlickBaseTable}
-import com.aimprosoft.tagless.BasicActionLang
+import com.aimprosoft.lang.BasicActionLang
 
 import scala.concurrent.ExecutionContext
 

@@ -1,8 +1,8 @@
-package com.aimprosoft.tagless.service
+package com.aimprosoft.service
 
 import cats.Monad
 import com.aimprosoft.model.{Department, Employee, Id}
-import com.aimprosoft.tagless.BasicActionLang
+import com.aimprosoft.lang.BasicActionLang
 import com.google.inject.Inject
 
 class DepartmentService[F[_] : Monad] @Inject()(departmentLang: BasicActionLang[F, Department],

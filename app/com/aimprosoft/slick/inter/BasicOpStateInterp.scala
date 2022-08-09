@@ -1,10 +1,10 @@
-package com.aimprosoft.slick.tagless
+package com.aimprosoft.slick.inter
 
 import cats.data.State
 import cats.implicits.none
 import com.aimprosoft.Util.{boolToAffected, boolToAffectedOpt}
 import com.aimprosoft.model._
-import com.aimprosoft.tagless.BasicActionLang
+import com.aimprosoft.lang.BasicActionLang
 
 object BasicOpStateInterp {
 
@@ -41,8 +41,8 @@ object BasicOpStateInterp {
 
   }
 
-  implicit val employeeSlickInterp: BasicActionLang[λ[α => State[Map[Id, Employee], α]], Employee] = new StateActionLang[Employee] { }
+  val employeeSlickInterp: BasicActionLang[λ[α => State[Map[Id, Employee], α]], Employee] = new StateActionLang[Employee] { }
 
-  implicit val departmentSlickInterp: BasicActionLang[λ[α => State[Map[Id, Department], α]], Department] = new StateActionLang[Department] {}
+  val departmentSlickInterp: BasicActionLang[λ[α => State[Map[Id, Department], α]], Department] = new StateActionLang[Department] {}
 
 }

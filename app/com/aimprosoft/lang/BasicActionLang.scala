@@ -1,4 +1,4 @@
-package com.aimprosoft.tagless
+package com.aimprosoft.lang
 
 import com.aimprosoft.model._
 
