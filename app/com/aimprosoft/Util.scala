@@ -8,4 +8,7 @@ object Util {
 
   def boolToAffectedOpt(v: Boolean): Option[Affected] = Option(boolToAffected(v))
 
+  implicit class StringOps(line: String) {
+    def quote: String = '\"' + line + '\"'
+  }
 }

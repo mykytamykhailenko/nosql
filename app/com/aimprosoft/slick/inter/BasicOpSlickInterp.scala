@@ -2,18 +2,14 @@ package com.aimprosoft.slick.inter
 
 import com.aimprosoft.model._
 import com.aimprosoft.slick.databaseConfig.profile.api._
-import com.aimprosoft.slick.table.{DepartmentTable, EmployeeTable, TSlickBaseTable}
+import com.aimprosoft.slick.table.TSlickBaseTable
 import com.aimprosoft.lang.BasicActionLang
 
 import scala.concurrent.ExecutionContext
 
 object BasicOpSlickInterp {
 
-  trait SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]] extends BasicActionLang[DBIO, M] {
-
-    implicit val ec: ExecutionContext
-
-    val entities: TableQuery[T]
+  case class SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](entities: TableQuery[T])(implicit val ec: ExecutionContext) extends BasicActionLang[DBIO, M] {
 
     def create(value: M): DBIO[Option[Id]] = {
 
@@ -43,20 +39,6 @@ object BasicOpSlickInterp {
     def deleteById(id: Id): DBIO[Affected] = entities.filter(_.id === id).delete
 
   }
-
-  def composeSlickInterp[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](table: TableQuery[T])(implicit cont: ExecutionContext): BasicActionLang[DBIO, M] = new SlickActionLang[M, T] {
-
-    implicit val ec: ExecutionContext = cont
-
-    val entities: TableQuery[T] = table
-
-  }
-
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  val employeeSlickInterp: BasicActionLang[DBIO, Employee] = composeSlickInterp(TableQuery[EmployeeTable])
-
-  val departmentSlickInterp: BasicActionLang[DBIO, Department] = composeSlickInterp(TableQuery[DepartmentTable])
 
 
 }
