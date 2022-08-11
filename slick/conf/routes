@@ -1,0 +1,24 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+# An example controller showing a sample home page
+GET             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.readAll()
+GET             /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.readById(id: Id)
+GET             /department/:id/employee        com.aimprosoft.slick.controllers.SlickDepartmentController.getEmployeesByDepartmentId(id: Id)
+POST            /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.create()
+PUT             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.update()
+DELETE          /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.deleteById(id: Id)
+
+
+GET             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.readAll()
+GET             /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.readById(id: Id)
+GET             /employee/:id/department        com.aimprosoft.slick.controllers.SlickEmployeeController.getEmployeeWithDepartmentById(id: Id)
+POST            /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.create()
+PUT             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.update()
+DELETE          /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.deleteById(id: Id)
+
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
