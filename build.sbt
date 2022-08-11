@@ -5,7 +5,6 @@ organization := "aimprosoft"
 
 version := "1.0-SNAPSHOT"
 
-
 lazy val root = (project in file("common"))
   .settings(
     scalaVersion := "2.13.6",
