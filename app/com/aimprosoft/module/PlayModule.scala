@@ -13,6 +13,7 @@ import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
 import com.aimprosoft.slick.inter.SlickMatLang
 import com.aimprosoft.slick.table.{DepartmentTable, EmployeeTable}
 import com.google.inject.{AbstractModule, TypeLiteral}
+import slickeffect.implicits.dbioCatsEffectSync
 
 import scala.concurrent.ExecutionContext
 
@@ -28,15 +29,14 @@ class PlayModule extends AbstractModule {
     bind(new TypeLiteral[BasicActionLang[DBIO, Employee]] {}).toInstance(SlickActionLang(TableQuery[EmployeeTable]))
     bind(new TypeLiteral[BasicActionLang[DBIO, Department]] {}).toInstance(SlickActionLang(TableQuery[DepartmentTable]))
 
-    bind(new TypeLiteral[BasicActionLang[IO, Employee]] {}).toInstance(DoobieActionLang[IO, Employee]())
-    bind(new TypeLiteral[BasicActionLang[IO, Department]] {}).toInstance(DoobieActionLang[IO, Department]())
+    bind(new TypeLiteral[BasicActionLang[IO, Employee]] {}).toInstance(DoobieActionLang())
+    bind(new TypeLiteral[BasicActionLang[IO, Department]] {}).toInstance(DoobieActionLang())
 
     bind(new TypeLiteral[MatLang[DBIO]] {}).to(new TypeLiteral[SlickMatLang] {})
     bind(new TypeLiteral[MatLang[IO]] {}).toInstance(DoobieMatLang(runtime))
 
-    bind(new TypeLiteral[Monad[DBIO]] {}).toInstance(slickeffect.implicits.dbioCatsEffectSync)
+    bind(new TypeLiteral[Monad[DBIO]] {}).toInstance(implicitly[Monad[DBIO]])
     bind(new TypeLiteral[Monad[IO]] {}).toInstance(implicitly[Monad[IO]])
-
 
   }
 }

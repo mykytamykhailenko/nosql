@@ -12,6 +12,8 @@ import doobie.util.{Read => DoobieRead, Write => DoobieWrite}
 
 object DoobieBasicOpInter {
 
+  private val rowCountQuery = sql"select row_count()".query[Affected]
+
   case class DoobieActionLang[F[_] : Async, M <: TIdentity : DoobieWrite : DoobieRead]()(implicit aux: Aux[F, Unit], gtf: GetFields[M]) extends BasicActionLang[F, M] {
 
     def create(value: M): F[Option[Id]] = {
@@ -32,18 +34,15 @@ object DoobieBasicOpInter {
     def update(value: M): F[Option[Affected]] =
       value.id.fold(Async[F].pure(none[Id])) { id =>
 
-        val fieldsAndValues = gtf.getFieldMap(value) - gtf.id
-
-        val fields = fieldsAndValues.map { case (field, value) => const(field) ++ fr" = $value" }
+        val fields = gtf.getFieldMapWithoutId(value).map { case (field, value) => const(field) ++ fr"= $value" }
 
         val setStatement = fr"set" ++ fields.reduce(_ ++ fr"," ++ _)
 
         val updateStmt = fr"update" ++ const(gtf.table) ++ setStatement ++ fr"where" ++ const(gtf.id) ++ fr"= $id"
-        val rowCountStmt = sql"select row_count()"
 
         val ops = for {
           _ <- updateStmt.update.run
-          affected <- rowCountStmt.query[Affected].option
+          affected <- rowCountQuery.option
         } yield affected
 
         ops.transact(aux)
@@ -54,12 +53,12 @@ object DoobieBasicOpInter {
     def readById(id: Id): F[Option[M]] = (fr"select * from" ++ const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id").query[M].option.transact(aux)
 
     def deleteById(id: Id): F[Affected] = {
-      val deleteStmt = (fr"delete from" ++ const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id")
-      val rowCountStmt = sql"select row_count()"
+
+      val deleteStmt = fr"delete from" ++ const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id"
 
       val deletion = for {
         _ <- deleteStmt.update.run
-        affected <- rowCountStmt.query[Affected].unique
+        affected <- rowCountQuery.unique
       } yield affected
 
       deletion.transact(aux)

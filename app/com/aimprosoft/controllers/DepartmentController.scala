@@ -11,7 +11,7 @@ import slickeffect.implicits._
 
 import scala.concurrent.ExecutionContext
 
-class SlickDepartmentController @Inject()(basicActionLang: BasicActionLang[DBIO, Department],
+class DepartmentController @Inject()(basicActionLang: BasicActionLang[DBIO, Department],
                                           departmentService: DepartmentService[DBIO],
                                           langMat: MatLang[DBIO],
                                           controllerComponents: ControllerComponents)

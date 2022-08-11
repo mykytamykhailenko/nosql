@@ -12,7 +12,7 @@ import slickeffect.implicits._
 import scala.concurrent.ExecutionContext
 
 // Those should be of a concrete effect type.
-class SlickEmployeeController @Inject()(basicActionLang: BasicActionLang[DBIO, Employee],
+class EmployeeController @Inject()(basicActionLang: BasicActionLang[DBIO, Employee],
                                         employeeService: EmployeeService[DBIO],
                                         langMat: MatLang[DBIO],
                                         controllerComponents: ControllerComponents)
