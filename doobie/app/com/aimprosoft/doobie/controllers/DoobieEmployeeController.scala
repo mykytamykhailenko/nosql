@@ -6,8 +6,9 @@ import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
 import com.aimprosoft.common.model.Employee
 import com.aimprosoft.common.service.EmployeeService
 import com.google.inject.Inject
-import monix.eval.Task
+import zio.Task
 import play.api.mvc.ControllerComponents
+import zio.interop.catz.monadErrorInstance
 
 import scala.concurrent.ExecutionContext
 

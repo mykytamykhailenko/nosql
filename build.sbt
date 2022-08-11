@@ -40,6 +40,8 @@ lazy val doobie = (project in file("doobie"))
     libraryDependencies ++= Seq(
       guice,
       "io.monix" %% "monix" % "3.4.1",
+      "dev.zio" %% "zio" % "2.0.0",
+      "dev.zio" %% "zio-interop-cats" % "22.0.0.0",
       "org.tpolecat" %% "doobie-core" % "0.13.4", // I had to downgrade Doobie for compatibility with Monix.
       "org.tpolecat" %% "doobie-hikari" % "0.13.4",
       "mysql" % "mysql-connector-java" % "8.0.30"),
