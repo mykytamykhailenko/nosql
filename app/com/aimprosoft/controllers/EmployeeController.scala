@@ -1,5 +1,6 @@
 package com.aimprosoft.controllers
 
+import cats.Monad
 import com.aimprosoft.lang.{BasicActionLang, MatLang}
 import com.aimprosoft.model.{Employee, Id}
 import com.aimprosoft.service.EmployeeService
@@ -12,12 +13,12 @@ import slickeffect.implicits._
 import scala.concurrent.ExecutionContext
 
 // Those should be of a concrete effect type.
-class EmployeeController @Inject()(basicActionLang: BasicActionLang[DBIO, Employee],
-                                        employeeService: EmployeeService[DBIO],
-                                        langMat: MatLang[DBIO],
-                                        controllerComponents: ControllerComponents)
-                                       (implicit ec: ExecutionContext) extends
-  BasicActionController[DBIO, Employee](basicActionLang, langMat, controllerComponents) {
+class EmployeeController[F[_] : Monad] @Inject()(basicActionLang: BasicActionLang[F, Employee],
+                                                 employeeService: EmployeeService[F],
+                                                 langMat: MatLang[F],
+                                                 controllerComponents: ControllerComponents)
+                                                (implicit ec: ExecutionContext) extends
+  BasicActionController[F, Employee](basicActionLang, langMat, controllerComponents) {
 
   def getEmployeeWithDepartmentById(id: Id): Action[AnyContent] = Action.async { _ =>
     langMat.materialize(employeeService.getEmployeeById(id)).map(v => Ok(Json.toJson(v)))
