@@ -5,9 +5,8 @@ organization := "aimprosoft"
 
 version := "1.0-SNAPSHOT"
 
-lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-lazy val common = (project in file("common"))
+lazy val root = (project in file("common"))
   .settings(
     scalaVersion := "2.13.6",
     libraryDependencies ++= Seq(
@@ -19,7 +18,7 @@ lazy val common = (project in file("common"))
   .enablePlugins(PlayScala)
 
 lazy val slick = (project in file("slick"))
-  .dependsOn(common)
+  .dependsOn(root)
   .settings(
     scalaVersion := "2.13.6",
     libraryDependencies ++= Seq(
@@ -35,7 +34,7 @@ lazy val slick = (project in file("slick"))
   .enablePlugins(PlayScala)
 
 lazy val doobie = (project in file("doobie"))
-  .dependsOn(common)
+  .dependsOn(root)
   .settings(
     scalaVersion := "2.13.6",
     libraryDependencies ++= Seq(
@@ -50,11 +49,6 @@ lazy val doobie = (project in file("doobie"))
   )
   .enablePlugins(PlayScala)
 
-
-
-scalaVersion := "2.13.6"
-
-libraryDependencies += guice
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
 
 /*
@@ -71,11 +65,5 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC1",
   "org.tpolecat" %% "doobie-specs2" % "1.0.0-RC1" % Test,
   "org.tpolecat" %% "doobie-scalatest" % "1.0.0-RC1" % Test)*/
-
-// Adds additional packages into Twirl
-//TwirlKeys.templateImports += "aimprosoft.controllers._"
-
-// Adds additional packages into conf/routes
-// play.sbt.routes.RoutesKeys.routesImport += "aimprosoft.binders._"
 
 

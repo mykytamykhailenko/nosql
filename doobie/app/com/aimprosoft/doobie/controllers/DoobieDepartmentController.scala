@@ -6,13 +6,14 @@ import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
 import com.aimprosoft.common.model.Department
 import com.aimprosoft.common.service.DepartmentService
 import com.google.inject.Inject
+import monix.eval.Task
 import play.api.mvc.ControllerComponents
 
 import scala.concurrent.ExecutionContext
 
-class DoobieDepartmentController @Inject()(basicActionLang: BasicActionLang[IO, Department],
-                                           departmentService: DepartmentService[IO],
-                                           langMat: MatLang[IO],
+class DoobieDepartmentController @Inject()(basicActionLang: BasicActionLang[Task, Department],
+                                           departmentService: DepartmentService[Task],
+                                           langMat: MatLang[Task],
                                            controllerComponents: ControllerComponents)
                                           (implicit ec: ExecutionContext) extends
-  DepartmentController[IO](basicActionLang, departmentService, langMat, controllerComponents)
+  DepartmentController[Task](basicActionLang, departmentService, langMat, controllerComponents)
