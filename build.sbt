@@ -5,6 +5,8 @@ organization := "aimprosoft"
 
 version := "1.0-SNAPSHOT"
 
+ThisBuild / libraryDependencies += "org.specs2" %% "specs2-core" % "4.16.1" % Test
+
 lazy val root = (project in file("common"))
   .settings(
     scalaVersion := "2.13.6",
@@ -49,22 +51,5 @@ lazy val doobie = (project in file("doobie"))
       "com.aimprosoft.common.model.Id")
   )
   .enablePlugins(PlayScala)
-
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
-
-/*
-libraryDependencies ++= Seq(
-  // "io.monix" %% "monix" % "3.4.1",
-  "org.typelevel" %% "cats-core" % "2.8.0",
-  "com.kubukoz" %% "slick-effect" % "0.4.0",
-  "com.typesafe.slick" %% "slick" % "3.3.3",
-  "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
-
-  // Start with this one
-  "org.tpolecat" %% "doobie-core" % "1.0.0-RC1",
-  "mysql" % "mysql-connector-java" % "8.0.29",
-  "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC1",
-  "org.tpolecat" %% "doobie-specs2" % "1.0.0-RC1" % Test,
-  "org.tpolecat" %% "doobie-scalatest" % "1.0.0-RC1" % Test)*/
 
 

@@ -5,7 +5,15 @@ import cats.implicits.{catsSyntaxOptionId, none}
 import com.aimprosoft.common.lang.BasicActionLang
 import com.aimprosoft.common.model._
 
+import scala.collection.mutable
+
 object BasicOpStateInterp {
+
+  def employeeAssigner(id: Id, employee: Employee): Employee = employee.copy(id = Some(id))
+
+  def departmentAssigner(id: Id, department: Department): Department = department.copy(id = Some(id))
+
+  def assign[M](model: M, f: (Id, M) => M): M = f(model.hashCode, model)
 
   implicit class BoolOps(v: Boolean) {
 
@@ -13,11 +21,14 @@ object BasicOpStateInterp {
 
   }
 
-  case class StateActionLang[M <: TIdentity]() extends BasicActionLang[λ[R => State[Map[Id, M], R]], M] {
+  // Very functional, but cannot be combined.
+  case class StateActionLang[M <: TIdentity](assigner: (Id, M) => M) extends BasicActionLang[λ[R => State[Map[Id, M], R]], M] {
 
     def create(value: M): State[Map[Id, M], Option[Id]] = State { v =>
 
-      def absent = (v + (value.hashCode -> value)) -> value.id
+      val created = assign(value, assigner)
+
+      def absent = (v + (created.id.get -> created)) -> created.id
 
       def present = v -> None
 
@@ -46,8 +57,36 @@ object BasicOpStateInterp {
 
   }
 
-  val employeeSlickInterp: BasicActionLang[λ[R => State[Map[Id, Employee], R]], Employee] = StateActionLang[Employee]()
+  case class MutableStateActionLang[M <: TIdentity](state: mutable.Map[Id, M], assigner: (Id, M) => M) extends BasicActionLang[cats.Id, M] {
 
-  val departmentSlickInterp: BasicActionLang[λ[R => State[Map[Id, Department], R]], Department] = StateActionLang[Department]()
+    def create(value: M): cats.Id[Option[Id]] = value.id.fold {
+      val id = value.hashCode
+      state += id -> assigner(id, value)
+      value.id
+    } (_ => none[Id])
+
+
+    def update(value: M): cats.Id[Option[Affected]] = value.id.fold(none[Affected]) { id =>
+      if (state.contains(id)) {
+        state.update(id, value)
+        1.some
+      }
+      else
+        0.some
+    }
+
+    def readAll: cats.Id[Seq[M]] = state.values.toSeq
+
+    def readById(id: Id): cats.Id[Option[M]] = state.get(id)
+
+    def deleteById(id: Id): cats.Id[Affected] = {
+      val previousSize = state.size
+
+      state -= id
+
+      (previousSize < state.size).toAffected
+    }
+
+  }
 
 }
