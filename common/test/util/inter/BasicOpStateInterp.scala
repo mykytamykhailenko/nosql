@@ -57,6 +57,7 @@ object BasicOpStateInterp {
 
   }
 
+  // Can be combined, but mutable.
   case class MutableStateActionLang[M <: TIdentity](state: mutable.Map[Id, M], assigner: (Id, M) => M) extends BasicActionLang[cats.Id, M] {
 
     def create(value: M): cats.Id[Option[Id]] = value.id.fold {
@@ -67,12 +68,11 @@ object BasicOpStateInterp {
 
 
     def update(value: M): cats.Id[Option[Affected]] = value.id.fold(none[Affected]) { id =>
-      if (state.contains(id)) {
-        state.update(id, value)
-        1.some
-      }
-      else
-        0.some
+
+      val present = state.contains(id)
+      if (present) state.update(id, value)
+
+      present.toAffected.some
     }
 
     def readAll: cats.Id[Seq[M]] = state.values.toSeq
