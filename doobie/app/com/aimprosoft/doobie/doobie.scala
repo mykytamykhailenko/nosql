@@ -5,7 +5,10 @@ import com.typesafe.config.{Config, ConfigFactory}
 import _root_.doobie.Transactor
 import _root_.doobie.Transactor.Aux
 import _root_.doobie.util._
-import cats.effect.{Async, ContextShift}
+import cats.effect.{Async, ContextShift, IO}
+import monix.eval.Task
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 package object doobie {
 
@@ -36,5 +39,9 @@ package object doobie {
   implicit val departmentRead: Read[Department] = Read[(Option[Id], String, String)].map((Department.apply _).tupled)
 
   implicit val employeeRead: Read[Employee] = Read[(Option[Id], Id, String, String)].map((Employee.apply _).tupled)
+
+  implicit val contextShiftIO: ContextShift[IO] = IO.contextShift(global)
+
+  implicit val contextShiftTask: ContextShift[Task] = Task.contextShift
 
 }

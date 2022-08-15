@@ -53,7 +53,8 @@ lazy val doobie = (project in file("doobie"))
       "org.tpolecat" %% "doobie-core" % "0.13.4", // I had to downgrade Doobie for compatibility with Monix.
       "org.tpolecat" %% "doobie-hikari" % "0.13.4",
       "com.h2database" % "h2" % "2.1.214",
-      "mysql" % "mysql-connector-java" % "8.0.30"),
+      "mysql" % "mysql-connector-java" % "8.0.30",
+      "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.common.controllers.Bindable.bindableId",
       "com.aimprosoft.common.model.Id")
