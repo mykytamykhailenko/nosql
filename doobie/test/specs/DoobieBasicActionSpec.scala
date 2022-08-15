@@ -1,9 +1,9 @@
 package specs
 
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
-import com.aimprosoft.common.model.{Department, Employee, Id}
 import cats.effect.{Effect, IO}
 import com.aimprosoft.common.lang.MatLang.MatLangOps
+import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
+import com.aimprosoft.common.model.Department
 import com.aimprosoft.doobie._
 import com.aimprosoft.doobie.inter.DoobieBasicOpInter.DoobieActionLang
 import com.aimprosoft.doobie.inter.IOMatLang
@@ -32,7 +32,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
       name.materialize() must beSome[String]("Scala").await
     }
 
-    "create and update an instance with id and read it" in {
+    "create, update, and read an instance with id and read it" in {
       val name = for {
         id <- create(Department(None, "Scala", ""))
         _ <- update(Department(id, "Java", ""))

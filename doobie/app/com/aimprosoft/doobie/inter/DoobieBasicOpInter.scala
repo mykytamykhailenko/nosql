@@ -37,21 +37,13 @@ object DoobieBasicOpInter {
 
         val fields = gtf.getFieldsAndValuesWithoutId(value).map(v => const(v._1) ++ fr"= ${v._2}")
 
-        val existsStmt =
-          fr"select count(*) from" ++
-            const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id"
-
-        val updateStmt =
-          fr"update" ++ const(gtf.table) ++
-            fr"set" ++ fields.reduce(_ ++ fr"," ++ _) ++
-            fr"where" ++ const(gtf.id) ++ fr"= $id"
-
-        val ops = for {
-          _ <- updateStmt.update.run
-          affected <- existsStmt.query[Affected].option
-        } yield affected
-
-        ops.transact(aux)
+        (fr"update" ++ const(gtf.table) ++
+          fr"set" ++ fields.reduce(_ ++ fr"," ++ _) ++
+          fr"where" ++ const(gtf.id) ++ fr"= $id")
+          .update
+          .run
+          .map(Option.apply)
+          .transact(aux)
       }
 
     def readAll(): F[Seq[M]] =
@@ -67,23 +59,12 @@ object DoobieBasicOpInter {
         .option
         .transact(aux)
 
-    def deleteById(id: Id): F[Affected] = {
-
-      val existsStmt =
-        fr"select count(*) from" ++
-          const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id"
-
-      val deleteStmt =
-        fr"delete from" ++ const(gtf.table) ++
-          fr"where" ++ const(gtf.id) ++ fr"= $id"
-
-      val deletion = for {
-        affected <- existsStmt.query[Affected].unique
-        _ <- deleteStmt.update.run
-      } yield affected
-
-      deletion.transact(aux)
-    }
+    def deleteById(id: Id): F[Affected] =
+      (fr"delete from" ++ const(gtf.table) ++
+        fr"where" ++ const(gtf.id) ++ fr"= $id")
+        .update
+        .run
+        .transact(aux)
 
 
   }
