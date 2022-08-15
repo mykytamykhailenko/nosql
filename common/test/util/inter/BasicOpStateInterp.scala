@@ -44,7 +44,7 @@ object BasicOpStateInterp {
       updatedState -> affectedState
     }
 
-    def readAll: State[Map[Id, M], Seq[M]] = State(v => v -> v.values.toSeq)
+    def readAll(): State[Map[Id, M], Seq[M]] = State(v => v -> v.values.toSeq)
 
     def readById(id: Id): State[Map[Id, M], Option[M]] = State(v => v -> v.get(id))
 
@@ -75,7 +75,7 @@ object BasicOpStateInterp {
       present.toAffected.some
     }
 
-    def readAll: cats.Id[Seq[M]] = state.values.toSeq
+    def readAll(): cats.Id[Seq[M]] = state.values.toSeq
 
     def readById(id: Id): cats.Id[Option[M]] = state.get(id)
 

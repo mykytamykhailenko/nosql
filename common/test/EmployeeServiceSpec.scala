@@ -21,7 +21,7 @@ class EmployeeServiceSpec extends Specification with Matchers {
       val employeeLang = MutableStateActionLang(employees, employeeAssigner)
       val departmentLang = MutableStateActionLang(departments, departmentAssigner)
 
-      val service = new EmployeeService(departmentLang, employeeLang)
+      val service = EmployeeService(departmentLang, employeeLang)
 
       service.getEmployeeById(1) === Some(completeEmployee)
     }

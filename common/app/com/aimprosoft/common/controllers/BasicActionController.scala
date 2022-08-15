@@ -25,7 +25,7 @@ class BasicActionController[F[_] : Monad, M <: TIdentity : Format] @Inject()(bas
   }
 
   def readAll(): Action[AnyContent] = Action.async { _ =>
-    langMat.materialize(basicActionLang.readAll).map(v => Ok(Json.toJson(v)))
+    langMat.materialize(basicActionLang.readAll()).map(v => Ok(Json.toJson(v)))
   }
 
   def readById(id: Id): Action[AnyContent] = Action.async { _ =>

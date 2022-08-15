@@ -15,7 +15,7 @@ trait BasicActionLang[F[_], M <: TIdentity] {
 
   def update(value: M): F[Option[Affected]]
 
-  def readAll: F[Seq[M]]
+  def readAll(): F[Seq[M]]
 
   def readById(id: Id): F[Option[M]]
 

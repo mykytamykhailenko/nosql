@@ -30,7 +30,7 @@ class DepartmentServiceSpec extends Specification with Matchers {
       val employeeLang = MutableStateActionLang(employees, employeeAssigner)
       val departmentLang = MutableStateActionLang(departments, departmentAssigner)
 
-      val service = new DepartmentService(departmentLang, employeeLang)
+      val service = DepartmentService(departmentLang, employeeLang)
 
       service.getEmployeesByDepartmentId(1).toSet === employeesOfDepartment
     }

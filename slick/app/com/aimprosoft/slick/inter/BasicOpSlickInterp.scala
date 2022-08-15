@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext
 
 object BasicOpSlickInterp {
 
-  case class SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](entities: TableQuery[T])(implicit val ec: ExecutionContext) extends BasicActionLang[DBIO, M] {
+  case class SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](entities: TableQuery[T])(implicit ec: ExecutionContext) extends BasicActionLang[DBIO, M] {
 
     def create(value: M): DBIO[Option[Id]] = {
 
@@ -32,7 +32,7 @@ object BasicOpSlickInterp {
       value.id.fold(nothing)(updated)
     }
 
-    def readAll: DBIO[Seq[M]] = entities.result
+    def readAll(): DBIO[Seq[M]] = entities.result
 
     def readById(id: Id): DBIO[Option[M]] = entities.filter(_.id === id).result.headOption
 

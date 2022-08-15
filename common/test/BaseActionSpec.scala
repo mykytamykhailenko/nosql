@@ -31,7 +31,7 @@ class BaseActionSpec extends Specification with Matchers {
       val allEmployees = Map(employeeId -> employeeWithId)
 
       val (_, employeeSeq) = StateActionLang[Employee](employeeAssigner)
-        .readAll
+        .readAll()
         .run(allEmployees)
         .value
 
@@ -92,7 +92,7 @@ class BaseActionSpec extends Specification with Matchers {
       val affected = for {
         id <- create(employee)
         _ <- update(worker.copy(id = id))
-        employees <- readAll
+        employees <- readAll()
         _ <- deleteById(id.get)
         theWorker <- readById(id.get)
       } yield (employees, theWorker)

@@ -51,7 +51,7 @@ object DoobieBasicOpInter {
         ops.transact(aux)
       }
 
-    def readAll: F[Seq[M]] = (fr"select * from" ++ const(gtf.table)).query[M].to[Seq].transact(aux)
+    def readAll(): F[Seq[M]] = (fr"select * from" ++ const(gtf.table)).query[M].to[Seq].transact(aux)
 
     def readById(id: Id): F[Option[M]] = (fr"select * from" ++ const(gtf.table) ++ fr"where" ++ const(gtf.id) ++ fr"= $id").query[M].option.transact(aux)
 
