@@ -2,7 +2,7 @@ package specs
 
 import cats.effect.{Effect, IO}
 import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
+import com.aimprosoft.common.lang.{BasicDAO, MatLang}
 import com.aimprosoft.common.model.Department
 import com.aimprosoft.doobie._
 import com.aimprosoft.doobie.inter.DoobieBasicOpInter.DoobieActionLang
@@ -19,7 +19,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
 
     implicit val mat: MatLang[IO] = IOMatLang()
 
-    val lang: BasicActionLang[IO, Department] = DoobieActionLang()
+    val lang: BasicDAO[IO, Department] = DoobieActionLang()
 
     import lang._
 

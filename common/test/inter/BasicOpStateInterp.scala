@@ -2,7 +2,7 @@ package inter
 
 import cats.data.State
 import cats.implicits.{catsSyntaxOptionId, none}
-import com.aimprosoft.common.lang.BasicActionLang
+import com.aimprosoft.common.lang.BasicDAO
 import com.aimprosoft.common.model._
 
 import scala.collection.mutable
@@ -22,7 +22,7 @@ object BasicOpStateInterp {
   }
 
   // Very functional, but cannot be combined.
-  case class StateActionLang[M <: TIdentity](assigner: (Id, M) => M) extends BasicActionLang[λ[R => State[Map[Id, M], R]], M] {
+  case class StateActionLang[M <: TIdentity](assigner: (Id, M) => M) extends BasicDAO[λ[R => State[Map[Id, M], R]], M] {
 
     def create(value: M): State[Map[Id, M], Option[Id]] = State { v =>
 
@@ -58,13 +58,13 @@ object BasicOpStateInterp {
   }
 
   // Can be combined, but mutable.
-  case class MutableStateActionLang[M <: TIdentity](state: mutable.Map[Id, M], assigner: (Id, M) => M) extends BasicActionLang[cats.Id, M] {
+  case class MutableStateActionLang[M <: TIdentity](state: mutable.Map[Id, M], assigner: (Id, M) => M) extends BasicDAO[cats.Id, M] {
 
     def create(value: M): cats.Id[Option[Id]] = value.id.fold {
       val id = value.hashCode
       state += id -> assigner(id, value)
       id.some
-    } (_ => none[Id])
+    }(_ => none[Id])
 
 
     def update(value: M): cats.Id[Option[Affected]] = value.id.fold(none[Affected]) { id =>

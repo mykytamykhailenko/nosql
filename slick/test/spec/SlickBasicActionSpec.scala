@@ -1,11 +1,11 @@
 package spec
 
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
+import com.aimprosoft.common.lang.MatLang.MatLangOps
+import com.aimprosoft.common.lang.{BasicDAO, MatLang}
 import com.aimprosoft.common.model.{Department, Employee, Id}
 import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
 import com.aimprosoft.slick.inter.SlickMatLang
-import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.slick.table.{EmployeeTable, departmentTable, employeeTable}
+import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
 
@@ -28,7 +28,7 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
 
     implicit val mat: MatLang[DBIO] = SlickMatLang()
 
-    val lang: BasicActionLang[DBIO, Employee] = SlickActionLang(employeeTable)
+    val lang: BasicDAO[DBIO, Employee] = SlickActionLang(employeeTable)
 
     import lang._
 

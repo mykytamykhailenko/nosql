@@ -1,18 +1,19 @@
 package com.aimprosoft.common.controllers
 
 import cats.Monad
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
+import com.aimprosoft.common.lang.MatLang
 import com.aimprosoft.common.model.{Id, TIdentity}
+import com.aimprosoft.common.service.TBasicService
 import com.google.inject.Inject
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 
 import scala.concurrent.ExecutionContext
 
-case class BasicActionController[F[_] : Monad, M <: TIdentity : Format] @Inject()(basicActionLang: BasicActionLang[F, M],
-                                                                             langMat: MatLang[F],
-                                                                             val controllerComponents: ControllerComponents)
-                                                                            (implicit val ec: ExecutionContext) extends BaseController {
+case class BasicActionController[F[_] : Monad, M <: TIdentity : Format] @Inject()(basicActionLang: TBasicService[F, M],
+                                                                                  langMat: MatLang[F],
+                                                                                  controllerComponents: ControllerComponents)
+                                                                                 (implicit val ec: ExecutionContext) extends BaseController {
 
   def create(): Action[JsValue] = Action.async(parse.json) { request =>
     val id = basicActionLang.create(request.body.as[M])

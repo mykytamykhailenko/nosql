@@ -1,14 +1,14 @@
 package spec
 
+import com.aimprosoft.common.lang.MatLang
 import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
 import com.aimprosoft.common.model.{Department, Employee}
+import com.aimprosoft.common.service.DepartmentService
 import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
 import com.aimprosoft.slick.inter.SlickMatLang
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
-import com.aimprosoft.common.service.DepartmentService
 import slickeffect.implicits._
 
 class SlickDepartmentActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with FutureMatchers {

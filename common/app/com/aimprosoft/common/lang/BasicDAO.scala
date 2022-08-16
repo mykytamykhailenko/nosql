@@ -9,7 +9,7 @@ import com.aimprosoft.common.model._
  * @tparam F An effectful type
  * @tparam M Model type
  */
-trait BasicActionLang[F[_], M <: TIdentity] {
+trait BasicDAO[F[_], M <: TIdentity] {
 
   def create(value: M): F[Option[Id]]
 

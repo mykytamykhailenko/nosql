@@ -1,20 +1,17 @@
 package com.aimprosoft.doobie.controllers
 
-import cats.effect.IO
 import com.aimprosoft.common.controllers.EmployeeController
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
-import com.aimprosoft.common.model.Employee
+import com.aimprosoft.common.lang.MatLang
 import com.aimprosoft.common.service.EmployeeService
 import com.google.inject.Inject
-import zio.Task
 import play.api.mvc.ControllerComponents
+import zio.Task
 import zio.interop.catz.monadErrorInstance
 
 import scala.concurrent.ExecutionContext
 
-class DoobieEmployeeController @Inject()(basicActionLang: BasicActionLang[Task, Employee],
-                                         employeeService: EmployeeService[Task],
+class DoobieEmployeeController @Inject()(employeeService: EmployeeService[Task],
                                          langMat: MatLang[Task],
                                          controllerComponents: ControllerComponents)
                                         (implicit ec: ExecutionContext) extends
-  EmployeeController[Task](basicActionLang, employeeService, langMat, controllerComponents)
+  EmployeeController[Task](employeeService, langMat, controllerComponents)

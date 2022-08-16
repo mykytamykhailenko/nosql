@@ -19,12 +19,12 @@ trait SlickSpec extends Specification with AfterEach with BeforeEach {
 
   val schema = tables.map(_.schema).reduce(_ ++ _)
 
-  override def before(): Unit = {
+  override def before: Unit = {
     val populateDatabase = DBIO.seq(schema.create, populateTables)
     awaitAsync(db.run(populateDatabase))
   }
 
-  override def after(): Unit = {
+  override def after: Unit = {
     awaitAsync(db.run(schema.drop))
   }
 

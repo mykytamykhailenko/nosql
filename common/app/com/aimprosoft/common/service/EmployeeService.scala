@@ -1,14 +1,24 @@
 package com.aimprosoft.common.service
 
-import com.aimprosoft.common.model._
-import com.aimprosoft.common.lang.BasicActionLang
 import cats.Monad
 import cats.data.OptionT
+import com.aimprosoft.common.lang.BasicDAO
+import com.aimprosoft.common.model._
 import com.google.inject.Inject
 
 // Alternative solution would be to create another language with this specific operation.
-case class EmployeeService[F[_] : Monad] @Inject()(departmentLang: BasicActionLang[F, Department],
-                                                   employeeLang: BasicActionLang[F, Employee]) {
+case class EmployeeService[F[_] : Monad] @Inject()(departmentLang: BasicDAO[F, Department],
+                                                   employeeLang: BasicDAO[F, Employee]) extends TEmployeeService[F] {
+
+  def create(value: Employee): F[Option[Id]] = employeeLang.create(value)
+
+  def update(value: Employee): F[Option[Affected]] = employeeLang.update(value)
+
+  def readAll(): F[Seq[Employee]] = employeeLang.readAll()
+
+  def readById(id: Id): F[Option[Employee]] = employeeLang.readById(id)
+
+  def deleteById(id: Id): F[Affected] = employeeLang.deleteById(id)
 
   def getEmployeeById(id: Id): F[Option[EmployeeFull]] = {
 

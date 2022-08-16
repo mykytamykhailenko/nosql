@@ -2,7 +2,7 @@ package com.aimprosoft.doobie.inter
 
 import cats.effect._
 import cats.implicits._
-import com.aimprosoft.common.lang.BasicActionLang
+import com.aimprosoft.common.lang.BasicDAO
 import com.aimprosoft.common.model._
 import com.aimprosoft.doobie.helpers.GetFields
 import doobie.Fragment.const
@@ -12,7 +12,7 @@ import doobie.util.{Read => DoobieRead}
 
 object DoobieBasicOpInter {
 
-  case class DoobieActionLang[F[_] : Async, M <: TIdentity : DoobieRead]()(implicit aux: Aux[F, Unit], gtf: GetFields[M]) extends BasicActionLang[F, M] {
+  case class DoobieActionLang[F[_] : Async, M <: TIdentity : DoobieRead]()(implicit aux: Aux[F, Unit], gtf: GetFields[M]) extends BasicDAO[F, M] {
 
     def create(value: M): F[Option[Id]] = {
 

@@ -4,7 +4,7 @@ import cats.Id
 import com.aimprosoft.common.controllers.BasicActionController
 import com.aimprosoft.common.model
 import com.aimprosoft.common.model.Employee
-import controller.Util.createEmployeeMutableState
+import controller.Util.{createEmployeeController, createEmployeeMutableState}
 import inter.IdMatLang
 import play.api.http.ContentTypes.JSON
 import play.api.libs.json._
@@ -17,29 +17,26 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
   "basic action controller" should {
 
-    def createDefaultController(): BasicActionController[Id, Employee] =
-      BasicActionController[Id, Employee](createEmployeeMutableState(), IdMatLang(), Helpers.stubControllerComponents())
-
     "read an entity by id" in {
-      val worker = createDefaultController().readById(1)(FakeRequest())
+      val worker = createEmployeeController().readById(1)(FakeRequest())
 
       contentAsJson(worker).as[Employee].name === "Shon"
     }
 
     "read all entities" in {
-      val workers = createDefaultController().readAll()(FakeRequest())
+      val workers = createEmployeeController().readAll()(FakeRequest())
 
       contentAsJson(workers).as[Seq[Employee]].map(_.name).toSet === Set("Shon", "Sancho", "Marco")
     }
 
     "delete an entity by id" in {
-      val confirmed = createDefaultController().deleteById(1)(FakeRequest())
+      val confirmed = createEmployeeController().deleteById(1)(FakeRequest())
 
       contentAsJson(confirmed).as[model.Id] === 1
     }
 
     "delete an entity, which doesn't exist" in {
-      val confirmed = createDefaultController().deleteById(42)(FakeRequest())
+      val confirmed = createEmployeeController().deleteById(42)(FakeRequest())
 
       contentAsJson(confirmed).as[model.Id] === 0
     }
@@ -54,7 +51,7 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
         ))
 
       val confirmed =
-        createDefaultController()
+        createEmployeeController()
           .create()(
             FakeRequest(Helpers.POST, "/employee")
               .withBody(worker)
@@ -74,7 +71,7 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
         ))
 
       val confirmed =
-        createDefaultController()
+        createEmployeeController()
           .create()(
             FakeRequest(Helpers.POST, "/employee")
               .withBody(worker)
@@ -94,7 +91,7 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
         ))
 
       val confirmed =
-        createDefaultController()
+        createEmployeeController()
           .update()(
             FakeRequest(Helpers.POST, "/employee")
               .withBody(worker)
@@ -113,7 +110,7 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
         ))
 
       val confirmed =
-        createDefaultController()
+        createEmployeeController()
           .update()(
             FakeRequest(Helpers.POST, "/employee")
               .withBody(worker)

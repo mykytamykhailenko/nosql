@@ -1,15 +1,15 @@
 package com.aimprosoft.slick.inter
 
+import com.aimprosoft.common.lang.BasicDAO
 import com.aimprosoft.common.model._
 import com.aimprosoft.slick.databaseConfig.profile.api._
 import com.aimprosoft.slick.table.TSlickBaseTable
-import com.aimprosoft.common.lang.BasicActionLang
 
 import scala.concurrent.ExecutionContext
 
 object BasicOpSlickInterp {
 
-  case class SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](entities: TableQuery[T])(implicit ec: ExecutionContext) extends BasicActionLang[DBIO, M] {
+  case class SlickActionLang[M <: TIdentity, T <: Table[M] with TSlickBaseTable[M]](entities: TableQuery[T])(implicit ec: ExecutionContext) extends BasicDAO[DBIO, M] {
 
     def create(value: M): DBIO[Option[Id]] = {
 

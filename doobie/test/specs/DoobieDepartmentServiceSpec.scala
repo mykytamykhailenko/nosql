@@ -2,7 +2,7 @@ package specs
 
 import cats.effect.{Effect, IO}
 import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.lang.{BasicActionLang, MatLang}
+import com.aimprosoft.common.lang.{BasicDAO, MatLang}
 import com.aimprosoft.common.model.{Department, Employee}
 import com.aimprosoft.common.service.DepartmentService
 import com.aimprosoft.doobie._
@@ -20,8 +20,8 @@ class DoobieDepartmentServiceSpec(implicit ee: ExecutionEnv) extends DoobieSpec[
 
     implicit val mat: MatLang[IO] = IOMatLang()
 
-    val employeeLang: BasicActionLang[IO, Employee] = DoobieActionLang()
-    val departmentLang: BasicActionLang[IO, Department] = DoobieActionLang()
+    val employeeLang: BasicDAO[IO, Employee] = DoobieActionLang()
+    val departmentLang: BasicDAO[IO, Department] = DoobieActionLang()
 
     val service = DepartmentService(departmentLang, employeeLang)
 

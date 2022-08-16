@@ -1,15 +1,15 @@
 package specs
 
-import cats.effect.{Async, ContextShift}
+import cats.effect.ContextShift
 import cats.implicits.toTraverseOps
 import com.aimprosoft.common.lang.MatLang
 import com.aimprosoft.common.lang.MatLang.MatLangOps
-import doobie.Transactor
-import org.specs2.mutable.Specification
-import org.specs2.specification.{AfterEach, BeforeEach}
 import com.aimprosoft.doobie.getTransactor
+import doobie.Transactor
 import doobie.implicits.toSqlInterpolator
 import org.specs2.matcher.FutureMatchers
+import org.specs2.mutable.Specification
+import org.specs2.specification.{AfterEach, BeforeEach}
 import play.api.test.Helpers.{defaultAwaitTimeout, await => awaitAsync}
 
 // Do not need to provide Async, because it has already git Effect.

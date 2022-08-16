@@ -4,9 +4,9 @@ import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
 import inter.BasicOpStateInterp.{StateActionLang, assign, employeeAssigner}
 
-class BaseActionSpec extends Specification with Matchers {
+class BaseDAOSpec extends Specification with Matchers {
 
-  "base action lang" should {
+  "base dao" should {
 
     val employee = Employee(None, 0, "Ugbuemugbem", "Osas")
     val employeeWithId = assign(employee, employeeAssigner)
