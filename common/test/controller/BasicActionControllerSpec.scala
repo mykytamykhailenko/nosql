@@ -2,33 +2,23 @@ package controller
 
 import cats.Id
 import com.aimprosoft.common.controllers.BasicActionController
-import com.aimprosoft.common.lang.BasicActionLang
 import com.aimprosoft.common.model
 import com.aimprosoft.common.model.Employee
-import inter.BasicOpStateInterp.{MutableStateActionLang, employeeAssigner}
+import controller.Util.createEmployeeMutableState
 import inter.IdMatLang
 import play.api.http.ContentTypes.JSON
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.test._
 
-import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class BasicActionControllerSpec extends PlaySpecification with Results {
 
   "basic action controller" should {
 
-
-    val employees = Seq(
-      1 -> Employee(Some(1), 0, "Shon", "Crawler"),
-      2 -> Employee(Some(2), 0, "Sancho", "Crawler"))
-
-    def createMutableState(): BasicActionLang[Id, Employee] =
-      MutableStateActionLang[Employee](mutable.Map(employees: _*), employeeAssigner)
-
     def createDefaultController(): BasicActionController[Id, Employee] =
-      BasicActionController[Id, Employee](createMutableState(), IdMatLang(), Helpers.stubControllerComponents())
+      BasicActionController[Id, Employee](createEmployeeMutableState(), IdMatLang(), Helpers.stubControllerComponents())
 
     "read an entity by id" in {
       val worker = createDefaultController().readById(1)(FakeRequest())
@@ -39,7 +29,7 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
     "read all entities" in {
       val workers = createDefaultController().readAll()(FakeRequest())
 
-      contentAsJson(workers).as[Seq[Employee]].map(_.name).toSet === Set("Shon", "Sancho")
+      contentAsJson(workers).as[Seq[Employee]].map(_.name).toSet === Set("Shon", "Sancho", "Marco")
     }
 
     "delete an entity by id" in {
