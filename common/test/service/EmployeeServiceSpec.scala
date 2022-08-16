@@ -1,14 +1,16 @@
 package service
 
+import cats.Id
 import cats.implicits.catsSyntaxOptionId
+import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model.{Department, Employee, EmployeeFull}
 import com.aimprosoft.service.EmployeeService
 import dao.MutableStateDAO
 import dao.StateDAO.{departmentAssigner, employeeAssigner}
+import org.mockito.Mockito.when
 import org.specs2.matcher.Matchers
+import org.specs2.mock.Mockito.mock
 import org.specs2.mutable.Specification
-
-import scala.collection.mutable
 
 class EmployeeServiceSpec extends Specification with Matchers {
 
@@ -16,17 +18,15 @@ class EmployeeServiceSpec extends Specification with Matchers {
 
     "find all employees belonging to the same department" in {
 
-      val employees = mutable.Map(1 -> Employee(1.some, 1, "Mike", "Shen"))
-      val departments = mutable.Map(1 -> Department(1.some, "Scala/ML", ""))
+      val departmentMock = mock[BasicDAO[Id, Department]]
+      val employeeMock = mock[BasicDAO[Id, Employee]]
 
-      val completeEmployee = EmployeeFull(Some(1), Department(Some(1), "Scala/ML", ""), "Mike", "Shen")
+      when(departmentMock.readById(0)).thenReturn(Some(Department(0.some, "Scala", "")))
+      when(employeeMock.readById(1)).thenReturn(Some(Employee(1.some, 0, "Shon", "Crawler")))
 
-      val employeeLang = MutableStateDAO(employees, employeeAssigner)
-      val departmentLang = MutableStateDAO(departments, departmentAssigner)
+      val service = EmployeeService(departmentMock, employeeMock)
 
-      val service = EmployeeService(departmentLang, employeeLang)
-
-      service.getEmployeeById(1) === Some(completeEmployee)
+      service.getEmployeeById(1) === Some(EmployeeFull(1.some, Department(0.some, "Scala", ""), "Shon", "Crawler"))
     }
 
   }
