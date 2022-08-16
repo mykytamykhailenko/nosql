@@ -1,7 +1,5 @@
 package controller
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
 import cats.Id
 import com.aimprosoft.common.controllers.BasicActionController
 import com.aimprosoft.common.lang.BasicActionLang
@@ -22,10 +20,12 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
   "basic action controller" should {
 
 
-    val employee = Employee(Some(1), 0, "Shon", "Crawler")
+    val employees = Seq(
+      1 -> Employee(Some(1), 0, "Shon", "Crawler"),
+      2 -> Employee(Some(2), 0, "Sancho", "Crawler"))
 
     def createMutableState(): BasicActionLang[Id, Employee] =
-      MutableStateActionLang[Employee](mutable.Map(employee.id.get -> employee), employeeAssigner)
+      MutableStateActionLang[Employee](mutable.Map(employees: _*), employeeAssigner)
 
     def createDefaultController(): BasicActionController[Id, Employee] =
       BasicActionController[Id, Employee](createMutableState(), IdMatLang(), Helpers.stubControllerComponents())
@@ -33,13 +33,25 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
     "read an entity by id" in {
       val worker = createDefaultController().readById(1)(FakeRequest())
 
-      contentAsJson(worker).as[Employee] === employee
+      contentAsJson(worker).as[Employee].name === "Shon"
+    }
+
+    "read all entities" in {
+      val workers = createDefaultController().readAll()(FakeRequest())
+
+      contentAsJson(workers).as[Seq[Employee]].map(_.name).toSet === Set("Shon", "Sancho")
     }
 
     "delete an entity by id" in {
       val confirmed = createDefaultController().deleteById(1)(FakeRequest())
 
       contentAsJson(confirmed).as[model.Id] === 1
+    }
+
+    "delete an entity, which doesn't exist" in {
+      val confirmed = createDefaultController().deleteById(42)(FakeRequest())
+
+      contentAsJson(confirmed).as[model.Id] === 0
     }
 
     "create an entity without id" in {
@@ -59,6 +71,65 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
               .withHeaders(CONTENT_TYPE -> JSON))
 
       contentAsJson(confirmed).asOpt[model.Id] must beSome[model.Id]
+    }
+
+    "create an entity with id (must not be created)" in {
+
+      val worker = JsObject(
+        Seq(
+          "id" -> JsNumber(42),
+          "department_id" -> JsNumber(0),
+          "name" -> JsString("Shon"),
+          "surname" -> JsString("Boreas")
+        ))
+
+      val confirmed =
+        createDefaultController()
+          .create()(
+            FakeRequest(Helpers.POST, "/employee")
+              .withBody(worker)
+              .withHeaders(CONTENT_TYPE -> JSON))
+
+      contentAsJson(confirmed).asOpt[model.Id] must beNone
+    }
+
+    "update a record with id" in {
+
+      val worker = JsObject(
+        Seq(
+          "id" -> JsNumber(1),
+          "department_id" -> JsNumber(0),
+          "name" -> JsString("Shon"),
+          "surname" -> JsString("Boreas")
+        ))
+
+      val confirmed =
+        createDefaultController()
+          .update()(
+            FakeRequest(Helpers.POST, "/employee")
+              .withBody(worker)
+              .withHeaders(CONTENT_TYPE -> JSON))
+
+      contentAsJson(confirmed).asOpt[model.Affected] must beSome[model.Affected](1)
+    }
+
+    "update a record without id" in {
+
+      val worker = JsObject(
+        Seq(
+          "department_id" -> JsNumber(0),
+          "name" -> JsString("Shon"),
+          "surname" -> JsString("Boreas")
+        ))
+
+      val confirmed =
+        createDefaultController()
+          .update()(
+            FakeRequest(Helpers.POST, "/employee")
+              .withBody(worker)
+              .withHeaders(CONTENT_TYPE -> JSON))
+
+      contentAsJson(confirmed).asOpt[model.Affected] must beNone
     }
 
   }
