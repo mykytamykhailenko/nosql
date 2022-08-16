@@ -5,8 +5,6 @@ organization := "aimprosoft"
 
 version := "1.0-SNAPSHOT"
 
-ThisBuild / libraryDependencies += "org.specs2" %% "specs2-core" % "4.16.1" % Test
-
 val confJavaOption = "-Dconfig.file=conf/test.conf"
 
 lazy val root = (project in file("common"))
@@ -14,7 +12,8 @@ lazy val root = (project in file("common"))
     scalaVersion := "2.13.6",
     libraryDependencies ++= Seq(
       guice,
-      "org.typelevel" %% "cats-core" % "2.8.0"),
+      "org.typelevel" %% "cats-core" % "2.8.0",
+      "com.typesafe.play" %% "play-specs2" % "2.8.16" % Test),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
     addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full)
   )
@@ -32,7 +31,8 @@ lazy val slick = (project in file("slick"))
       "com.typesafe.slick" %% "slick" % "3.3.3",
       "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
       "com.h2database" % "h2" % "2.1.214",
-      "mysql" % "mysql-connector-java" % "8.0.30"),
+      "mysql" % "mysql-connector-java" % "8.0.30",
+      "org.specs2" %% "specs2-core" % "4.16.1" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.common.controllers.Bindable.bindableId",
       "com.aimprosoft.common.model.Id"),
@@ -55,6 +55,7 @@ lazy val doobie = (project in file("doobie"))
       "org.tpolecat" %% "doobie-hikari" % "0.13.4",
       "com.h2database" % "h2" % "2.1.214",
       "mysql" % "mysql-connector-java" % "8.0.30",
+      "org.specs2" %% "specs2-core" % "4.16.1" % Test,
       "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.common.controllers.Bindable.bindableId",

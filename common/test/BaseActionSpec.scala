@@ -2,7 +2,7 @@ import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.common.model.Employee
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
-import util.inter.BasicOpStateInterp.{StateActionLang, assign, employeeAssigner}
+import inter.BasicOpStateInterp.{StateActionLang, assign, employeeAssigner}
 
 class BaseActionSpec extends Specification with Matchers {
 

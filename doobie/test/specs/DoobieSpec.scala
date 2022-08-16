@@ -19,7 +19,7 @@ abstract class DoobieSpec[F[_] : ContextShift] extends Specification with AfterE
 
   implicit val mat: MatLang[F]
 
-  override def before(): Unit = {
+  override def before: Unit = {
     val employees =
       (fr"CREATE TABLE `employees` (" ++
         fr"`employee_id` int NOT NULL AUTO_INCREMENT," ++
@@ -48,7 +48,7 @@ abstract class DoobieSpec[F[_] : ContextShift] extends Specification with AfterE
     awaitAsync(create)
   }
 
-  override def after(): Unit = {
+  override def after: Unit = {
     val employees = sql"DROP TABLE `employees`".update.run
     val departments = sql"DROP TABLE `departments`".update.run
 

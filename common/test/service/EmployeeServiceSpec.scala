@@ -1,9 +1,11 @@
+package service
+
 import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.common.model.{Department, Employee, EmployeeFull}
 import com.aimprosoft.common.service.EmployeeService
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
-import util.inter.BasicOpStateInterp.{MutableStateActionLang, departmentAssigner, employeeAssigner}
+import inter.BasicOpStateInterp.{MutableStateActionLang, departmentAssigner, employeeAssigner}
 
 import scala.collection.mutable
 

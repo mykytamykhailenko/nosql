@@ -1,6 +1,7 @@
 package com.aimprosoft.common.model
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.json.{Format, JsPath, Json, Reads, Writes}
 
 case class EmployeeFull(id: Option[Id],
                         department: Department,
@@ -9,6 +10,11 @@ case class EmployeeFull(id: Option[Id],
 
 object EmployeeFull {
 
-  implicit val employeeFullFormat: Format[EmployeeFull] = Json.format[EmployeeFull]
+  implicit val employeeWriteFull: Writes[EmployeeFull] = (
+    (JsPath \ "id").writeNullable[Id] and
+      (JsPath \ "department").write[Department] and
+      (JsPath \ "name").write[String] and
+      (JsPath \ "surname").write[String]
+    )(unlift(EmployeeFull.unapply))
 
 }

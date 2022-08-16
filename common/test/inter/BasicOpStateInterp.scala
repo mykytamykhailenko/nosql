@@ -1,4 +1,4 @@
-package util.inter
+package inter
 
 import cats.data.State
 import cats.implicits.{catsSyntaxOptionId, none}
@@ -63,7 +63,7 @@ object BasicOpStateInterp {
     def create(value: M): cats.Id[Option[Id]] = value.id.fold {
       val id = value.hashCode
       state += id -> assigner(id, value)
-      value.id
+      id.some
     } (_ => none[Id])
 
 
@@ -80,11 +80,10 @@ object BasicOpStateInterp {
     def readById(id: Id): cats.Id[Option[M]] = state.get(id)
 
     def deleteById(id: Id): cats.Id[Affected] = {
-      val previousSize = state.size
+      val present = state.contains(id)
 
       state -= id
-
-      (previousSize < state.size).toAffected
+      present.toAffected
     }
 
   }

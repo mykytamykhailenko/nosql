@@ -9,7 +9,7 @@ import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 
 import scala.concurrent.ExecutionContext
 
-class BasicActionController[F[_] : Monad, M <: TIdentity : Format] @Inject()(basicActionLang: BasicActionLang[F, M],
+case class BasicActionController[F[_] : Monad, M <: TIdentity : Format] @Inject()(basicActionLang: BasicActionLang[F, M],
                                                                              langMat: MatLang[F],
                                                                              val controllerComponents: ControllerComponents)
                                                                             (implicit val ec: ExecutionContext) extends BaseController {
