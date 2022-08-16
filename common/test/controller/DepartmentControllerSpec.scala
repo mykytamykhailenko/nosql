@@ -1,13 +1,16 @@
 package controller
 
-import com.aimprosoft.common.model.Employee
+import com.aimprosoft.model.Employee
 import controller.Util._
+import inter.IdMaterializer
 import play.api.mvc.Results
 import play.api.test.{FakeRequest, PlaySpecification}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DepartmentControllerSpec extends PlaySpecification with Results {
+
+  implicit val mat: IdMaterializer = IdMaterializer()
 
   "department controller" should {
 

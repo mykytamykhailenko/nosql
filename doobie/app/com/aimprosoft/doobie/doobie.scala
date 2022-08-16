@@ -1,6 +1,6 @@
 package com.aimprosoft
 
-import com.aimprosoft.common.model.{Department, Employee, Id}
+import com.aimprosoft.model.{Department, Employee, Id}
 import com.typesafe.config.{Config, ConfigFactory}
 import _root_.doobie.Transactor
 import _root_.doobie.Transactor.Aux

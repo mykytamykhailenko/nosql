@@ -1,11 +1,10 @@
 package spec
 
-import com.aimprosoft.common.lang.MatLang
-import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.model.{Department, Employee, EmployeeFull}
-import com.aimprosoft.common.service.EmployeeService
-import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
-import com.aimprosoft.slick.inter.SlickMatLang
+import com.aimprosoft.mat.Materializer
+import com.aimprosoft.model.{Department, Employee, EmployeeFull}
+import com.aimprosoft.service.EmployeeService
+import com.aimprosoft.slick.dao.SlickDAO
+import com.aimprosoft.slick.mat.SlickMaterializer
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
@@ -31,12 +30,12 @@ class SlickEmployeeActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with 
   // I don't think this test is really required.
   "employee service" should {
 
-    implicit val mat: MatLang[DBIO] = SlickMatLang()
+    val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val service = EmployeeService(SlickActionLang(departmentTable), SlickActionLang(employeeTable))
+    val service = EmployeeService(SlickDAO(departmentTable), SlickDAO(employeeTable))
 
     "read an employee with his department" in {
-      service.getEmployeeById(0).materialize() must beSome[EmployeeFull].await
+      mat.materialize(service.getEmployeeById(0)) must beSome[EmployeeFull].await
     }
 
   }

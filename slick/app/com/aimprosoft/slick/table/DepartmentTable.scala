@@ -1,6 +1,6 @@
 package com.aimprosoft.slick.table
 
-import com.aimprosoft.common.model.Department
+import com.aimprosoft.model.Department
 import com.aimprosoft.slick.databaseConfig.profile.api._
 
 class DepartmentTable(tag: Tag) extends Table[Department](tag, "departments") with TSlickBaseTable[Department] {

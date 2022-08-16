@@ -34,8 +34,8 @@ lazy val slick = (project in file("slick"))
       "mysql" % "mysql-connector-java" % "8.0.30",
       "org.specs2" %% "specs2-core" % "4.16.1" % Test),
     routesImport ++= Seq(
-      "com.aimprosoft.common.controllers.Bindable.bindableId",
-      "com.aimprosoft.common.model.Id"),
+      "com.aimprosoft.controllers.Bindable.bindableId",
+      "com.aimprosoft.model.Id"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   )
   .enablePlugins(PlayScala)
@@ -58,8 +58,8 @@ lazy val doobie = (project in file("doobie"))
       "org.specs2" %% "specs2-core" % "4.16.1" % Test,
       "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test),
     routesImport ++= Seq(
-      "com.aimprosoft.common.controllers.Bindable.bindableId",
-      "com.aimprosoft.common.model.Id"),
+      "com.aimprosoft.controllers.Bindable.bindableId",
+      "com.aimprosoft.model.Id"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   )
   .enablePlugins(PlayScala)

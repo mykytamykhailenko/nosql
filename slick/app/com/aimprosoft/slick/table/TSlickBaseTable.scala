@@ -1,6 +1,6 @@
 package com.aimprosoft.slick.table
 
-import com.aimprosoft.common.model._
+import com.aimprosoft.model._
 
 import com.aimprosoft.slick.databaseConfig.profile.api._
 

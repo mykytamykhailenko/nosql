@@ -2,8 +2,8 @@ package inter
 
 import cats.data.State
 import cats.implicits.{catsSyntaxOptionId, none}
-import com.aimprosoft.common.lang.BasicDAO
-import com.aimprosoft.common.model._
+import com.aimprosoft.dao.BasicDAO
+import com.aimprosoft.model._
 
 import scala.collection.mutable
 

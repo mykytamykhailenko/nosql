@@ -1,11 +1,11 @@
 package spec
 
-import com.aimprosoft.common.lang.MatLang
-import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.model.{Department, Employee}
-import com.aimprosoft.common.service.DepartmentService
-import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
-import com.aimprosoft.slick.inter.SlickMatLang
+import com.aimprosoft.mat.Materializer
+import com.aimprosoft.model.{Department, Employee}
+import com.aimprosoft.service.DepartmentService
+import com.aimprosoft.slick.dao.SlickDAO
+import com.aimprosoft.slick.mat.SlickMaterializer
+import com.aimprosoft.slick.mat.SlickMaterializer
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
@@ -31,12 +31,12 @@ class SlickDepartmentActionSpec(implicit ee: ExecutionEnv) extends SlickSpec wit
   // I don't think this test is really required.
   "department service" should {
 
-    implicit val mat: MatLang[DBIO] = SlickMatLang()
+    implicit val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val service = DepartmentService(SlickActionLang(departmentTable), SlickActionLang(employeeTable))
+    val service = DepartmentService(SlickDAO(departmentTable), SlickDAO(employeeTable))
 
     "read all employees from the same department" in {
-      service.getEmployeesByDepartmentId(0).materialize() must contain(employees.filter(_.departmentId == 0).toSet).await
+      mat.materialize(service.getEmployeesByDepartmentId(0)) must contain(employees.filter(_.departmentId == 0).toSet).await
     }
 
   }

@@ -1,13 +1,12 @@
 package controller
 
 import cats.Id
-import com.aimprosoft.common.controllers.{DepartmentController, EmployeeController}
-import com.aimprosoft.common.lang.BasicDAO
-import com.aimprosoft.common.model.{Department, Employee}
-import com.aimprosoft.common.service.{DepartmentService, EmployeeService}
+import com.aimprosoft.controllers.{DepartmentController, EmployeeController}
+import com.aimprosoft.dao.BasicDAO
+import com.aimprosoft.mat.Materializer
+import com.aimprosoft.model.{Department, Employee}
+import com.aimprosoft.service.{DepartmentService, EmployeeService}
 import inter.BasicOpStateInterp.{MutableStateActionLang, departmentAssigner, employeeAssigner}
-import inter.IdMatLang
-import org.specs2.specification.core.Execution
 import play.api.test.Helpers
 
 import scala.collection.mutable
@@ -30,16 +29,14 @@ object Util {
   def createDepartmentMutableState(): BasicDAO[Id, Department] =
     MutableStateActionLang[Department](mutable.Map(department: _*), departmentAssigner)
 
-  def createDepartmentController()(implicit ec: ExecutionContext): DepartmentController[Id] =
+  def createDepartmentController()(implicit mat: Materializer[Id], ec: ExecutionContext): DepartmentController[Id] =
     new DepartmentController[Id](
       DepartmentService(createDepartmentMutableState(), createEmployeeMutableState()),
-      IdMatLang(),
       Helpers.stubControllerComponents())
 
-  def createEmployeeController()(implicit ec: ExecutionContext): EmployeeController[Id] = {
+  def createEmployeeController()(implicit mat: Materializer[Id], ec: ExecutionContext): EmployeeController[Id] = {
     new EmployeeController[Id](
       EmployeeService(createDepartmentMutableState(), createEmployeeMutableState()),
-      IdMatLang(),
       Helpers.stubControllerComponents())
   }
 

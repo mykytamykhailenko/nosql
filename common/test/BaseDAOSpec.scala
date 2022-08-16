@@ -1,5 +1,5 @@
 import cats.implicits.catsSyntaxOptionId
-import com.aimprosoft.common.model.Employee
+import com.aimprosoft.model.Employee
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
 import inter.BasicOpStateInterp.{StateActionLang, assign, employeeAssigner}

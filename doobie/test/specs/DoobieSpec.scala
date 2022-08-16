@@ -2,8 +2,7 @@ package specs
 
 import cats.effect.ContextShift
 import cats.implicits.toTraverseOps
-import com.aimprosoft.common.lang.MatLang
-import com.aimprosoft.common.lang.MatLang.MatLangOps
+import com.aimprosoft.mat.Materializer
 import com.aimprosoft.doobie.getTransactor
 import doobie.Transactor
 import doobie.implicits.toSqlInterpolator
@@ -17,7 +16,7 @@ abstract class DoobieSpec[F[_] : ContextShift] extends Specification with AfterE
 
   def transactor: Transactor[F] = getTransactor[F]
 
-  implicit val mat: MatLang[F]
+  implicit val mat: Materializer[F]
 
   override def before: Unit = {
     val employees =
@@ -43,7 +42,7 @@ abstract class DoobieSpec[F[_] : ContextShift] extends Specification with AfterE
         fr")").update.run
 
     val tables = Seq(departments, employees).sequence
-    val create = transactor.trans.apply(tables).materialize()
+    val create = mat.materialize(transactor.trans.apply(tables))
 
     awaitAsync(create)
   }
@@ -53,7 +52,7 @@ abstract class DoobieSpec[F[_] : ContextShift] extends Specification with AfterE
     val departments = sql"DROP TABLE `departments`".update.run
 
     val tables = Seq(employees, departments).sequence
-    val delete = transactor.trans.apply(tables).materialize()
+    val delete = mat.materialize(transactor.trans.apply(tables))
 
     awaitAsync(delete)
   }

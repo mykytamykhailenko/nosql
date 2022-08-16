@@ -1,6 +1,6 @@
 package com.aimprosoft.doobie
 
-import com.aimprosoft.common.model.Affected
+import com.aimprosoft.model.Affected
 
 object Util {
 

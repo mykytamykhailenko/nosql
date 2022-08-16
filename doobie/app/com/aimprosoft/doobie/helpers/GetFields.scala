@@ -1,6 +1,6 @@
 package com.aimprosoft.doobie.helpers
 
-import com.aimprosoft.common.model._
+import com.aimprosoft.model._
 
 /**
  * Unfortunately, it is hardly possible to generalize Doobie queries, because it is a mere JDBC layer, not an ORM.

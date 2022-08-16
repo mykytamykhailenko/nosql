@@ -1,8 +1,8 @@
 package service
 
 import cats.implicits.catsSyntaxOptionId
-import com.aimprosoft.common.model.{Department, Employee, EmployeeFull}
-import com.aimprosoft.common.service.EmployeeService
+import com.aimprosoft.model.{Department, Employee, EmployeeFull}
+import com.aimprosoft.service.EmployeeService
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
 import inter.BasicOpStateInterp.{MutableStateActionLang, departmentAssigner, employeeAssigner}

@@ -1,11 +1,9 @@
 package controller
 
-import cats.Id
-import com.aimprosoft.common.controllers.BasicActionController
-import com.aimprosoft.common.model
-import com.aimprosoft.common.model.Employee
-import controller.Util.{createEmployeeController, createEmployeeMutableState}
-import inter.IdMatLang
+import com.aimprosoft.model
+import com.aimprosoft.model.Employee
+import controller.Util.createEmployeeController
+import inter.IdMaterializer
 import play.api.http.ContentTypes.JSON
 import play.api.libs.json._
 import play.api.mvc._
@@ -14,6 +12,8 @@ import play.api.test._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class BasicActionControllerSpec extends PlaySpecification with Results {
+
+  implicit val mat: IdMaterializer = IdMaterializer()
 
   "basic action controller" should {
 

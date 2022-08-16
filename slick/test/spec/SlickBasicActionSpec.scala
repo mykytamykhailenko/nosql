@@ -1,10 +1,10 @@
 package spec
 
-import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.lang.{BasicDAO, MatLang}
-import com.aimprosoft.common.model.{Department, Employee, Id}
-import com.aimprosoft.slick.inter.BasicOpSlickInterp.SlickActionLang
-import com.aimprosoft.slick.inter.SlickMatLang
+import com.aimprosoft.dao.BasicDAO
+import com.aimprosoft.mat.Materializer
+import com.aimprosoft.model.{Department, Employee, Id}
+import com.aimprosoft.slick.dao.SlickDAO
+import com.aimprosoft.slick.mat.SlickMaterializer
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
@@ -26,38 +26,38 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
 
   "slick basic action" should {
 
-    implicit val mat: MatLang[DBIO] = SlickMatLang()
+    implicit val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val lang: BasicDAO[DBIO, Employee] = SlickActionLang(employeeTable)
+    val lang: BasicDAO[DBIO, Employee] = SlickDAO(employeeTable)
 
     import lang._
 
     "create an instance without id" in {
-      create(Employee(None, 0, "John", "Wick")).materialize() must beSome[Id].await
+      mat.materialize(create(Employee(None, 0, "John", "Wick"))) must beSome[Id].await
     }
 
     "create an instance with id" in {
-      create(Employee(Some(42), 0, "John", "Wick")).materialize() must beNone.await
+      mat.materialize(create(Employee(Some(42), 0, "John", "Wick"))) must beNone.await
     }
 
     "update an instance with id" in {
-      update(Employee(Some(0), 0, "John", "Wick")).materialize() must beSome[Id](1).await
+      mat.materialize(update(Employee(Some(0), 0, "John", "Wick"))) must beSome[Id](1).await
     }
 
     "update an instance without id" in {
-      update(Employee(None, 0, "John", "Wick")).materialize() must beNone.await
+      mat.materialize(update(Employee(None, 0, "John", "Wick"))) must beNone.await
     }
 
     "read an instance by id" in {
-      readById(0).materialize() must beSome(Employee(Some(0), 0, "Tom", "Thomson")).await
+      mat.materialize(readById(0)) must beSome(Employee(Some(0), 0, "Tom", "Thomson")).await
     }
 
     "read all instances" in {
-      readAll().materialize() must contain(employees.toSet).await
+      mat.materialize(readAll()) must contain(employees.toSet).await
     }
 
     "delete an instances by id" in {
-      deleteById(0).materialize() must be_===(1).await
+      mat.materialize(deleteById(0)) must be_===(1).await
     }
 
     "create, update, and read an instances" in {
@@ -68,7 +68,7 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
         employee <- readById(id.get)
       } yield employee.map(_.surname)
 
-      surname.materialize() must beSome[String]("Marco").await
+      mat.materialize(surname) must beSome[String]("Marco").await
     }
 
   }

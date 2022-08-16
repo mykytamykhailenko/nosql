@@ -1,25 +1,25 @@
 package specs
 
 import cats.effect.{Effect, IO}
-import com.aimprosoft.common.lang.MatLang.MatLangOps
-import com.aimprosoft.common.lang.{BasicDAO, MatLang}
-import com.aimprosoft.common.model.Department
+import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.doobie._
-import com.aimprosoft.doobie.inter.DoobieBasicOpInter.DoobieActionLang
-import com.aimprosoft.doobie.inter.IOMatLang
+import com.aimprosoft.doobie.dao.DoobieDAO
+import com.aimprosoft.doobie.mat.IOMaterializer
+import com.aimprosoft.mat.Materializer
+import com.aimprosoft.model.Department
 import org.specs2.concurrent.ExecutionEnv
 
 class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
 
   override implicit def M: Effect[IO] = IO.ioEffect
 
-  override implicit val mat: MatLang[IO] = IOMatLang()
+  override implicit val mat: Materializer[IO] = IOMaterializer()
 
   "doobie basic action" should {
 
-    implicit val mat: MatLang[IO] = IOMatLang()
+    implicit val mat: Materializer[IO] = IOMaterializer()
 
-    val lang: BasicDAO[IO, Department] = DoobieActionLang()
+    val lang: BasicDAO[IO, Department] = DoobieDAO()
 
     import lang._
 
@@ -29,7 +29,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
         department <- readById(id.get)
       } yield department.map(_.name)
 
-      name.materialize() must beSome[String]("Scala").await
+      mat.materialize(name) must beSome[String]("Scala").await
     }
 
     "create, update, and read an instance with id and read it" in {
@@ -39,15 +39,15 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
         department <- readById(id.get)
       } yield department.map(_.name)
 
-      name.materialize() must beSome[String]("Java").await
+      mat.materialize(name) must beSome[String]("Java").await
     }
 
     "create an instance without id" in {
-      create(Department(Some(42), "Scala", "")).materialize() must beNone.await
+      mat.materialize(create(Department(Some(42), "Scala", ""))) must beNone.await
     }
 
     "update an instance without id" in {
-      update(Department(None, "Java", "")).materialize() must beNone.await
+      mat.materialize(update(Department(None, "Java", ""))) must beNone.await
     }
 
     "delete an instance" in {
@@ -57,7 +57,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
         all <- readAll()
       } yield all
 
-      all.materialize() must be_===(Seq[Department]()).await
+      mat.materialize(all) must be_===(Seq[Department]()).await
     }
 
   }

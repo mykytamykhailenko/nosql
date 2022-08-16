@@ -1,6 +1,6 @@
 package com.aimprosoft.slick.table
 
-import com.aimprosoft.common.model.Employee
+import com.aimprosoft.model.Employee
 import com.aimprosoft.slick.databaseConfig.profile.api._
 
 class EmployeeTable(tag: Tag) extends Table[Employee](tag, "employees") with TSlickBaseTable[Employee] {
