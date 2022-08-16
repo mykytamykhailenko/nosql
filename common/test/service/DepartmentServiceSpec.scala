@@ -24,11 +24,11 @@ class DepartmentServiceSpec extends Specification with Matchers {
       val departmentMock = mock[BasicDAO[Id, Department]]
       val employeeMock = mock[BasicDAO[Id, Employee]]
 
-      when(employeeMock.readAll()).thenReturn(Seq(Employee(None, 0, "Vel", "")))
+      when(employeeMock.readAll()).thenReturn(Seq(Employee(None, 1, "Vel", "")))
 
       val service = DepartmentService(departmentMock, employeeMock)
 
-      service.getEmployeesByDepartmentId(1) === Seq(Employee(None, 0, "Vel", ""))
+      service.getEmployeesByDepartmentId(1) === Seq(Employee(None, 1, "Vel", ""))
     }
 
   }
