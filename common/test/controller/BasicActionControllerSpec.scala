@@ -1,30 +1,23 @@
 package controller
 
 import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
-import akka.stream.testkit.NoMaterializer
-import akka.util.Timeout
+import akka.stream.Materializer
 import cats.Id
-import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.common.controllers.BasicActionController
 import com.aimprosoft.common.lang.BasicActionLang
 import com.aimprosoft.common.model
 import com.aimprosoft.common.model.Employee
 import inter.BasicOpStateInterp.{MutableStateActionLang, employeeAssigner}
 import inter.IdMatLang
-import play.api.libs.json._
-import play.api.mvc.{BodyParser, _}
-import play.api.test.Helpers.stubBodyParser
-import play.api.test._
 import play.api.http.ContentTypes.JSON
+import play.api.libs.json._
+import play.api.mvc._
+import play.api.test._
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class BasicActionControllerSpec extends PlaySpecification with Results {
-
-  implicit val actorSystem: ActorSystem = ActorSystem("test")
-  implicit val materializer: Materializer = Materializer.matFromSystem
 
   "basic action controller" should {
 
