@@ -16,17 +16,15 @@ import play.api.libs.json._
 import play.api.mvc.{BodyParser, _}
 import play.api.test.Helpers.stubBodyParser
 import play.api.test._
-import play.api.data.FormBinding.Implicits._
 import play.api.http.ContentTypes.JSON
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
 
 class BasicActionControllerSpec extends PlaySpecification with Results {
 
-  implicit val actorSystem = ActorSystem("test")
-  implicit val materializer = Materializer.matFromSystem
+  implicit val actorSystem: ActorSystem = ActorSystem("test")
+  implicit val materializer: Materializer = Materializer.matFromSystem
 
   "basic action controller" should {
 
@@ -38,15 +36,6 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
     def createDefaultController(): BasicActionController[Id, Employee] =
       BasicActionController[Id, Employee](createMutableState(), IdMatLang(), Helpers.stubControllerComponents())
-
-    def createControllerWithBody(body: JsValue): BasicActionController[Id, Employee] =
-      BasicActionController[Id, Employee](
-        createMutableState(),
-        IdMatLang(),
-        Helpers.stubControllerComponents(
-          stubBodyParser(AnyContentAsJson(body))
-        )
-      )
 
     "read an entity by id" in {
       val worker = createDefaultController().readById(1)(FakeRequest())
@@ -62,13 +51,19 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
     "create an entity without id" in {
 
+      val worker = JsObject(
+        Seq(
+          "department_id" -> JsNumber(0),
+          "name" -> JsString("Shon"),
+          "surname" -> JsString("Boreas")
+        ))
+
       val confirmed =
         createDefaultController()
-          .create()(FakeRequest(
-            Helpers.POST,
-            "/employee",
-            FakeHeaders(Seq(CONTENT_TYPE -> JSON)),
-            Employee(None, 0, "Shon", "Boreas")))
+          .create()(
+            FakeRequest(Helpers.POST, "/employee")
+              .withBody(worker)
+              .withHeaders(CONTENT_TYPE -> JSON))
 
       contentAsJson(confirmed).asOpt[model.Id] must beSome[model.Id]
     }
