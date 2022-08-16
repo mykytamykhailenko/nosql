@@ -32,7 +32,8 @@ lazy val slick = (project in file("slick"))
       "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
       "com.h2database" % "h2" % "2.1.214",
       "mysql" % "mysql-connector-java" % "8.0.30",
-      "org.specs2" %% "specs2-core" % "4.16.1" % Test),
+      "org.specs2" %% "specs2-core" % "4.16.1" % Test,
+      "org.mockito" % "mockito-core" % "4.7.0" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable.bindableId",
       "com.aimprosoft.model.Id"),
@@ -56,7 +57,8 @@ lazy val doobie = (project in file("doobie"))
       "com.h2database" % "h2" % "2.1.214",
       "mysql" % "mysql-connector-java" % "8.0.30",
       "org.specs2" %% "specs2-core" % "4.16.1" % Test,
-      "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test),
+      "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test,
+      "org.mockito" % "mockito-core" % "4.7.0" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable.bindableId",
       "com.aimprosoft.model.Id"),

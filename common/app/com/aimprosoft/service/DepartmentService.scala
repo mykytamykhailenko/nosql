@@ -18,14 +18,12 @@ case class DepartmentService[F[_] : Monad] @Inject()(departmentLang: BasicDAO[F,
 
   def deleteById(id: Id): F[Affected] = departmentLang.deleteById(id)
 
-  import cats.syntax.flatMap._
   import cats.syntax.functor._
 
   // It is a highly inefficient implementation created for the showcase only.
   def getEmployeesByDepartmentId(id: Id): F[Seq[Employee]] =
     for {
-      department <- departmentLang.readById(id)
-      employee <- employeeLang.readAll()
-    } yield department.fold(Seq[Employee]())(dep => employee.filter(_.departmentId == dep.id.get))
+      workers <- employeeLang.readAll()
+    } yield workers.filter(_.departmentId == id)
 
 }
