@@ -1,4 +1,4 @@
-package inter
+package mat
 
 import cats.Id
 import com.aimprosoft.mat.Materializer

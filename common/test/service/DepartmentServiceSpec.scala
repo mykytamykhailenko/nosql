@@ -3,9 +3,10 @@ package service
 import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.model.{Department, Employee}
 import com.aimprosoft.service.DepartmentService
+import dao.MutableStateDAO
+import dao.StateDAO._
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
-import inter.BasicOpStateInterp._
 
 import scala.collection.mutable
 
@@ -29,8 +30,8 @@ class DepartmentServiceSpec extends Specification with Matchers {
         Employee(1.some, 1, "Mike", "Shen"),
         Employee(2.some, 1, "John", "Johnson"))
 
-      val employeeLang = MutableStateActionLang(employees, employeeAssigner)
-      val departmentLang = MutableStateActionLang(departments, departmentAssigner)
+      val employeeLang = MutableStateDAO(employees, employeeAssigner)
+      val departmentLang = MutableStateDAO(departments, departmentAssigner)
 
       val service = DepartmentService(departmentLang, employeeLang)
 

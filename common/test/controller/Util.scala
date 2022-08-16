@@ -6,7 +6,8 @@ import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.mat.Materializer
 import com.aimprosoft.model.{Department, Employee}
 import com.aimprosoft.service.{DepartmentService, EmployeeService}
-import inter.BasicOpStateInterp.{MutableStateActionLang, departmentAssigner, employeeAssigner}
+import dao.MutableStateDAO
+import dao.StateDAO.{departmentAssigner, employeeAssigner}
 import play.api.test.Helpers
 
 import scala.collection.mutable
@@ -24,10 +25,10 @@ object Util {
     1 -> Department(Some(1), "ML", ""))
 
   def createEmployeeMutableState(): BasicDAO[Id, Employee] =
-    MutableStateActionLang[Employee](mutable.Map(employees: _*), employeeAssigner)
+    MutableStateDAO[Employee](mutable.Map(employees: _*), employeeAssigner)
 
   def createDepartmentMutableState(): BasicDAO[Id, Department] =
-    MutableStateActionLang[Department](mutable.Map(department: _*), departmentAssigner)
+    MutableStateDAO[Department](mutable.Map(department: _*), departmentAssigner)
 
   def createDepartmentController()(implicit mat: Materializer[Id], ec: ExecutionContext): DepartmentController[Id] =
     new DepartmentController[Id](

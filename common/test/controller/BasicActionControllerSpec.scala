@@ -3,7 +3,7 @@ package controller
 import com.aimprosoft.model
 import com.aimprosoft.model.Employee
 import controller.Util.createEmployeeController
-import inter.IdMaterializer
+import mat.IdMaterializer
 import play.api.http.ContentTypes.JSON
 import play.api.libs.json._
 import play.api.mvc._

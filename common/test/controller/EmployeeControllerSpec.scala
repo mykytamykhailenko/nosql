@@ -3,7 +3,7 @@ package controller
 
 import com.aimprosoft.model
 import controller.Util._
-import inter.IdMaterializer
+import mat.IdMaterializer
 import play.api.mvc.Results
 import play.api.test.{FakeRequest, PlaySpecification}
 
