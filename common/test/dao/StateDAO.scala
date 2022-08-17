@@ -46,10 +46,7 @@ case class StateDAO[M <: TIdentity with Product : Assign]() extends BasicDAO[λ[
   def readById(id: Id): State[Map[Id, M], Option[M]] = State(v => v -> v.get(id))
 
   def deleteById(id: Id): State[Map[Id, M], Affected] = State { v =>
-
-    val reduced = v - id
-
-    reduced -> (reduced.size < v.size).toAffected
+      v - id -> v.contains(id).toAffected
   }
 
 }

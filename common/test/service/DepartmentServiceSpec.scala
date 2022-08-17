@@ -1,18 +1,13 @@
 package service
 
 import cats.Id
-import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model.{Department, Employee}
 import com.aimprosoft.service.DepartmentService
-import dao.MutableStateDAO
-import dao.StateDAO._
 import org.mockito.Mockito.when
 import org.specs2.matcher.Matchers
 import org.specs2.mock.Mockito.mock
 import org.specs2.mutable.Specification
-
-import scala.collection.mutable
 
 
 class DepartmentServiceSpec extends Specification with Matchers {

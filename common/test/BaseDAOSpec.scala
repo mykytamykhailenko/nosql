@@ -93,14 +93,12 @@ class BaseDAOSpec extends Specification with Matchers {
 
       val lang = StateDAO[Employee]()
 
-      import lang._
-
       val affected = for {
-        id <- create(employee)
-        _ <- update(worker.copy(id = id))
-        employees <- readAll()
-        _ <- deleteById(id.get)
-        theWorker <- readById(id.get)
+        id <- lang.create(employee)
+        _ <- lang.update(worker.copy(id = id))
+        employees <- lang.readAll()
+        _ <- lang.deleteById(id.get)
+        theWorker <- lang.readById(id.get)
       } yield (employees, theWorker)
 
       val (_, (employees, theWorker)) = affected.run(Map()).value
