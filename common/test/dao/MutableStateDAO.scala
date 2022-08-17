@@ -4,16 +4,18 @@ import cats.implicits.{catsSyntaxOptionId, none}
 import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model._
 import dao.StateDAO.BoolOps
+import util.Assign
+import util.Assign.AssignOps
 
 import scala.collection.mutable
 
 // Can be combined, but mutable.
-case class MutableStateDAO[M <: TIdentity](state: mutable.Map[Id, M], assigner: (Id, M) => M) extends BasicDAO[cats.Id, M] {
+case class MutableStateDAO[M <: TIdentity with Product : Assign](state: mutable.Map[Id, M]) extends BasicDAO[cats.Id, M] {
 
   def create(value: M): cats.Id[Option[Id]] = value.id.fold {
-    val id = value.hashCode
-    state += id -> assigner(id, value)
-    id.some
+    val created = value.assignId
+    state += created.id.get -> created
+    created.id
   }(_ => none[Id])
 
 

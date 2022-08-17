@@ -5,8 +5,6 @@ import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model.{Department, Employee, EmployeeFull}
 import com.aimprosoft.service.EmployeeService
-import dao.MutableStateDAO
-import dao.StateDAO.{departmentAssigner, employeeAssigner}
 import org.mockito.Mockito.when
 import org.specs2.matcher.Matchers
 import org.specs2.mock.Mockito.mock
