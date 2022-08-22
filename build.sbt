@@ -35,8 +35,8 @@ lazy val slick = (project in file("slick"))
       "org.specs2" %% "specs2-core" % "4.16.1" % Test,
       "org.mockito" % "mockito-core" % "4.7.0" % Test),
     routesImport ++= Seq(
-      "com.aimprosoft.controllers.Bindable.bindableId",
-      "com.aimprosoft.model.Id"),
+      "com.aimprosoft.controllers.Bindable._",
+      "com.aimprosoft.model._"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   )
   .enablePlugins(PlayScala)
@@ -60,8 +60,8 @@ lazy val doobie = (project in file("doobie"))
       "org.tpolecat" %% "doobie-specs2" % "0.13.4" % Test,
       "org.mockito" % "mockito-core" % "4.7.0" % Test),
     routesImport ++= Seq(
-      "com.aimprosoft.controllers.Bindable.bindableId",
-      "com.aimprosoft.model.Id"),
+      "com.aimprosoft.controllers.Bindable._",
+      "com.aimprosoft.model._"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   )
   .enablePlugins(PlayScala)

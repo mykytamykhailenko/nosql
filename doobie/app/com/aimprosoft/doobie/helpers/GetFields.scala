@@ -11,7 +11,7 @@ import com.aimprosoft.model._
  *
  * @tparam T Model with identity
  */
-trait GetFields[T <: TIdentity] {
+trait GetFields[T <: Id[Int]] {
 
   val table: String
 
@@ -27,9 +27,9 @@ trait GetFields[T <: TIdentity] {
 
 object GetFields {
 
-  def convertOptIdToStr(id: Option[Id]): String = id.fold("NULL")(_.toString)
+  def convertOptIdToStr(id: Option[Int]): String = id.fold("NULL")(_.toString)
 
-  implicit val departmentGetFields: GetFields[Department] = new GetFields[Department] {
+  implicit val departmentGetFields: GetFields[Department[Int]] = new GetFields[Department[Int]] {
 
     val table = "departments"
 
@@ -37,14 +37,14 @@ object GetFields {
 
     val fieldsWithoutId: Seq[String] = Seq("name", "description")
 
-    def getId(v: Department): String = convertOptIdToStr(v.id)
+    def getId(v: Department[Int]): String = convertOptIdToStr(v.id)
 
-    def getFieldsAndValuesWithoutId(v: Department): Seq[(String, String)] = Seq(
+    def getFieldsAndValuesWithoutId(v: Department[Int]): Seq[(String, String)] = Seq(
       "name" -> v.name,
       "description" -> v.description)
   }
 
-  implicit val employeeGetFields: GetFields[Employee] = new GetFields[Employee] {
+  implicit val employeeGetFields: GetFields[Employee[Int]] = new GetFields[Employee[Int]] {
 
     val table = "employees"
 
@@ -52,9 +52,9 @@ object GetFields {
 
     val fieldsWithoutId: Seq[String] = Seq("department_id", "name", "surname")
 
-    def getId(v: Employee): String = convertOptIdToStr(v.id)
+    def getId(v: Employee[Int]): String = convertOptIdToStr(v.id)
 
-    def getFieldsAndValuesWithoutId(v: Employee): Seq[(String, String)] = Seq(
+    def getFieldsAndValuesWithoutId(v: Employee[Int]): Seq[(String, String)] = Seq(
       "department_id" -> v.departmentId.toString,
       "name" -> v.name,
       "surname" -> v.surname)

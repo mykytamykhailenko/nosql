@@ -19,7 +19,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
 
     implicit val mat: Materializer[IO] = IOMaterializer()
 
-    val lang: BasicDAO[IO, Department] = DoobieDAO()
+    val lang: BasicDAO[IO, Int, Department[Int]] = DoobieDAO()
 
     import lang._
 
@@ -57,7 +57,7 @@ class DoobieBasicActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO] {
         all <- readAll()
       } yield all
 
-      mat.materialize(all) must be_===(Seq[Department]()).await
+      mat.materialize(all) must be_===(Seq[Department[Int]]()).await
     }
 
   }

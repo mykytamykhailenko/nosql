@@ -17,18 +17,18 @@ import zio.interop.catz._
 class PlayModule extends AbstractModule {
   override def configure(): Unit = {
 
-    bind(new TypeLiteral[BasicDAO[IO, Employee]] {}).toInstance(DoobieDAO())
-    bind(new TypeLiteral[BasicDAO[IO, Department]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[IO, Int, Employee[Int]]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[IO, Int, Department[Int]]] {}).toInstance(DoobieDAO())
     bind(new TypeLiteral[Materializer[IO]] {}).toInstance(IOMaterializer())
     bind(new TypeLiteral[Monad[IO]] {}).toInstance(implicitly[Monad[IO]])
 
-    bind(new TypeLiteral[BasicDAO[Task, Employee]] {}).toInstance(DoobieDAO())
-    bind(new TypeLiteral[BasicDAO[Task, Department]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[Task, Int, Employee[Int]]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[Task, Int, Department[Int]]] {}).toInstance(DoobieDAO())
     bind(new TypeLiteral[Materializer[Task]] {}).toInstance(mat.TaskMaterializer(globalScheduler))
     bind(new TypeLiteral[Monad[Task]] {}).toInstance(implicitly[Monad[Task]])
 
-    bind(new TypeLiteral[BasicDAO[zio.Task, Employee]] {}).toInstance(DoobieDAO())
-    bind(new TypeLiteral[BasicDAO[zio.Task, Department]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[zio.Task, Int, Employee[Int]]] {}).toInstance(DoobieDAO())
+    bind(new TypeLiteral[BasicDAO[zio.Task, Int, Department[Int]]] {}).toInstance(DoobieDAO())
     bind(new TypeLiteral[Materializer[zio.Task]] {}).toInstance(mat.ZIOMaterializer(zio.Runtime.default))
     bind(new TypeLiteral[Monad[zio.Task]] {}).toInstance(implicitly[Monad[zio.Task]])
 

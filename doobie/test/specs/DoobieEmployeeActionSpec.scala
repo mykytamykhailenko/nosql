@@ -21,8 +21,8 @@ class DoobieEmployeeActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO]
 
     implicit val mat: Materializer[IO] = IOMaterializer()
 
-    val employeeLang: BasicDAO[IO, Employee] = DoobieDAO()
-    val departmentLang: BasicDAO[IO, Department] = DoobieDAO()
+    val employeeLang: BasicDAO[IO, Int, Employee[Int]] = DoobieDAO()
+    val departmentLang: BasicDAO[IO, Int, Department[Int]] = DoobieDAO()
 
     val service = EmployeeService(departmentLang, employeeLang)
 

@@ -36,9 +36,9 @@ package object doobie {
       (departmentId, name, description)
     }*/
 
-  implicit val departmentRead: Read[Department] = Read[(Option[Id], String, String)].map((Department.apply _).tupled)
+  implicit val departmentRead: Read[Department[Int]] = Read[(Option[Int], String, String)].map((Department.apply[Int] _).tupled)
 
-  implicit val employeeRead: Read[Employee] = Read[(Option[Id], Id, String, String)].map((Employee.apply _).tupled)
+  implicit val employeeRead: Read[Employee[Int]] = Read[(Option[Int], Int, String, String)].map((Employee.apply[Int] _).tupled)
 
   implicit val contextShiftIO: ContextShift[IO] = IO.contextShift(global)
 
