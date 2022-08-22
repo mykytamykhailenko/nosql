@@ -66,4 +66,23 @@ lazy val doobie = (project in file("doobie"))
   )
   .enablePlugins(PlayScala)
 
+lazy val phantom = (project in file("phantom"))
+  .dependsOn(root)
+  .settings(
+    scalaVersion := "2.13.6",
+    Test / fork := true,
+    Test / javaOptions += confJavaOption,
+    libraryDependencies ++= Seq(
+      guice,
+      "org.scala-lang" % "scala-reflect" % "2.13.8",
+      "com.outworkers" %% "phantom-dsl" % "2.59.0",
+      "org.specs2" %% "specs2-core" % "4.16.1" % Test,
+      "org.mockito" % "mockito-core" % "4.7.0" % Test),
+    routesImport ++= Seq(
+      "com.aimprosoft.controllers.Bindable._",
+      "com.aimprosoft.model._"),
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+  )
+  .enablePlugins(PlayScala)
+
 
