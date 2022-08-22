@@ -15,8 +15,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class PlayModule extends AbstractModule {
   override def configure(): Unit = {
-    bind(new TypeLiteral[BasicDAO[DBIO, Employee]] {}).toInstance(SlickDAO(employeeTable))
-    bind(new TypeLiteral[BasicDAO[DBIO, Department]] {}).toInstance(SlickDAO(departmentTable))
+    bind(new TypeLiteral[BasicDAO[DBIO, Int, Employee[Int]]] {}).toInstance(SlickDAO(employeeTable))
+    bind(new TypeLiteral[BasicDAO[DBIO, Int, Department[Int]]] {}).toInstance(SlickDAO(departmentTable))
     bind(new TypeLiteral[Materializer[DBIO]] {}).to(new TypeLiteral[SlickMaterializer] {})
     bind(new TypeLiteral[Monad[DBIO]] {}).toInstance(implicitly[Monad[DBIO]])
 

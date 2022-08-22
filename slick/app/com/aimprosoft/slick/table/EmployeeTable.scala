@@ -3,7 +3,7 @@ package com.aimprosoft.slick.table
 import com.aimprosoft.model.Employee
 import com.aimprosoft.slick.databaseConfig.profile.api._
 
-class EmployeeTable(tag: Tag) extends Table[Employee](tag, "employees") with TSlickBaseTable[Employee] {
+class EmployeeTable(tag: Tag) extends Table[Employee[Int]](tag, "employees") with TSlickBaseTable[Employee[Int]] {
 
   override def id: Rep[Int] = column("employee_id", O.PrimaryKey, O.AutoInc)
 
@@ -13,7 +13,7 @@ class EmployeeTable(tag: Tag) extends Table[Employee](tag, "employees") with TSl
 
   def surname: Rep[String] = column("surname")
 
-  def * = (id.?, departmentId, name, surname) <> ((Employee.apply _).tupled, Employee.unapply)
+  def * = (id.?, departmentId, name, surname) <> ((Employee.apply[Int] _).tupled, Employee.unapply[Int])
 
   def department = foreignKey("employee_in_department", departmentId, TableQuery[DepartmentTable])(_.id, onDelete = ForeignKeyAction.Restrict)
 

@@ -4,9 +4,9 @@ import com.aimprosoft.model._
 
 import com.aimprosoft.slick.databaseConfig.profile.api._
 
-trait TSlickBaseTable[M <: TIdentity] {
+trait TSlickBaseTable[M <: Id[Int]] {
   self: Table[M] =>
 
-  def id: Rep[Id]
+  def id: Rep[Int]
 
 }

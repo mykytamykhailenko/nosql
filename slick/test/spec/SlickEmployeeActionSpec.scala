@@ -1,7 +1,7 @@
 package spec
 
 import com.aimprosoft.mat.Materializer
-import com.aimprosoft.model.{Department, Employee, EmployeeFull}
+import com.aimprosoft.model.{CompleteEmployee, Department, Employee}
 import com.aimprosoft.service.EmployeeService
 import com.aimprosoft.slick.dao.SlickDAO
 import com.aimprosoft.slick.mat.SlickMaterializer
@@ -14,12 +14,12 @@ class SlickEmployeeActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with 
 
   import dbConfig.profile.api._
 
-  val employees: Seq[Employee] = Seq(
+  val employees: Seq[Employee[Int]] = Seq(
     Employee(Some(0), 0, "Tom", "Thomson"),
     Employee(Some(1), 0, "Jul", "Marko"),
     Employee(Some(2), 1, "Carlo", "Frank"))
 
-  val departments: Seq[Department] = Seq(
+  val departments: Seq[Department[Int]] = Seq(
     Department(Some(0), "Scala", ""),
     Department(Some(1), "Java", ""))
 
@@ -32,10 +32,10 @@ class SlickEmployeeActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with 
 
     val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val service = EmployeeService(SlickDAO(departmentTable), SlickDAO(employeeTable))
+    val service = EmployeeService[DBIO, Int](SlickDAO(departmentTable), SlickDAO(employeeTable))
 
     "read an employee with his department" in {
-      mat.materialize(service.getEmployeeById(0)) must beSome[EmployeeFull].await
+      mat.materialize(service.getEmployeeById(0)) must beSome[CompleteEmployee[Int]].await
     }
 
   }

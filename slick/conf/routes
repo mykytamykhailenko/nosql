@@ -5,19 +5,19 @@
 
 # An example controller showing a sample home page
 GET             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.readAll()
-GET             /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.readById(id: Id)
-GET             /department/:id/employee        com.aimprosoft.slick.controllers.SlickDepartmentController.getEmployeesByDepartmentId(id: Id)
+GET             /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.readById(id: Int)
+GET             /department/:id/employee        com.aimprosoft.slick.controllers.SlickDepartmentController.getEmployeesByDepartmentId(id: Int)
 POST            /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.create()
 PUT             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.update()
-DELETE          /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.deleteById(id: Id)
+DELETE          /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.deleteById(id: Int)
 
 
 GET             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.readAll()
-GET             /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.readById(id: Id)
-GET             /employee/:id/department        com.aimprosoft.slick.controllers.SlickEmployeeController.getEmployeeWithDepartmentById(id: Id)
+GET             /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.readById(id: Int)
+GET             /employee/:id/department        com.aimprosoft.slick.controllers.SlickEmployeeController.getEmployeeWithDepartmentById(id: Int)
 POST            /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.create()
 PUT             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.update()
-DELETE          /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.deleteById(id: Id)
+DELETE          /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.deleteById(id: Int)
 
 
 # Map static resources from the /public folder to the /assets URL path

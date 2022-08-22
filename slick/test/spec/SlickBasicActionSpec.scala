@@ -2,7 +2,7 @@ package spec
 
 import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.mat.Materializer
-import com.aimprosoft.model.{Department, Employee, Id}
+import com.aimprosoft.model.{Department, Employee}
 import com.aimprosoft.slick.dao.SlickDAO
 import com.aimprosoft.slick.mat.SlickMaterializer
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
@@ -13,11 +13,11 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
 
   import dbConfig.profile.api._
 
-  val employees: Seq[Employee] = Seq(
+  val employees: Seq[Employee[Int]] = Seq(
     Employee(Some(0), 0, "Tom", "Thomson"),
     Employee(Some(1), 0, "Jul", "Marko"))
 
-  val departments: Seq[Department] = Seq(
+  val departments: Seq[Department[Int]] = Seq(
     Department(Some(0), "Scala", ""))
 
   override def populateTables: DBIO[Unit] = DBIO.seq(
@@ -28,12 +28,12 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
 
     implicit val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val lang: BasicDAO[DBIO, Employee] = SlickDAO(employeeTable)
+    val lang: BasicDAO[DBIO, Int, Employee[Int]] = SlickDAO(employeeTable)
 
     import lang._
 
     "create an instance without id" in {
-      mat.materialize(create(Employee(None, 0, "John", "Wick"))) must beSome[Id].await
+      mat.materialize(create(Employee(None, 0, "John", "Wick"))) must beSome[Int].await
     }
 
     "create an instance with id" in {
@@ -41,7 +41,7 @@ class SlickBasicActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with Fut
     }
 
     "update an instance with id" in {
-      mat.materialize(update(Employee(Some(0), 0, "John", "Wick"))) must beSome[Id](1).await
+      mat.materialize(update(Employee(Some(0), 0, "John", "Wick"))) must beSome[Int](1).await
     }
 
     "update an instance without id" in {

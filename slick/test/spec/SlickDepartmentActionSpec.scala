@@ -5,7 +5,6 @@ import com.aimprosoft.model.{Department, Employee}
 import com.aimprosoft.service.DepartmentService
 import com.aimprosoft.slick.dao.SlickDAO
 import com.aimprosoft.slick.mat.SlickMaterializer
-import com.aimprosoft.slick.mat.SlickMaterializer
 import com.aimprosoft.slick.table.{departmentTable, employeeTable}
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
@@ -15,12 +14,12 @@ class SlickDepartmentActionSpec(implicit ee: ExecutionEnv) extends SlickSpec wit
 
   import dbConfig.profile.api._
 
-  val employees: Seq[Employee] = Seq(
+  val employees: Seq[Employee[Int]] = Seq(
     Employee(Some(0), 0, "Tom", "Thomson"),
     Employee(Some(1), 0, "Jul", "Marko"),
     Employee(Some(2), 1, "Carlo", "Frank"))
 
-  val departments: Seq[Department] = Seq(
+  val departments: Seq[Department[Int]] = Seq(
     Department(Some(0), "Scala", ""),
     Department(Some(1), "Java", ""))
 
@@ -33,7 +32,7 @@ class SlickDepartmentActionSpec(implicit ee: ExecutionEnv) extends SlickSpec wit
 
     implicit val mat: Materializer[DBIO] = SlickMaterializer()
 
-    val service = DepartmentService(SlickDAO(departmentTable), SlickDAO(employeeTable))
+    val service = DepartmentService[DBIO, Int](SlickDAO(departmentTable), SlickDAO(employeeTable))
 
     "read all employees from the same department" in {
       mat.materialize(service.getEmployeesByDepartmentId(0)) must contain(employees.filter(_.departmentId == 0).toSet).await

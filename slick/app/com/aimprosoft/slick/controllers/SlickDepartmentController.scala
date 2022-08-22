@@ -10,7 +10,7 @@ import slickeffect.implicits._
 
 import scala.concurrent.ExecutionContext
 
-class SlickDepartmentController @Inject()(departmentService: DepartmentService[DBIO],
+class SlickDepartmentController @Inject()(departmentService: DepartmentService[DBIO, Int],
                                           controllerComponents: ControllerComponents)
                                          (implicit mat: Materializer[DBIO], ec: ExecutionContext) extends
-  DepartmentController[DBIO](departmentService, controllerComponents)
+  DepartmentController[DBIO, Int](departmentService, controllerComponents)
