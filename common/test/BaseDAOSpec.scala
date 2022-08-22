@@ -3,15 +3,18 @@ import com.aimprosoft.model.Employee
 import dao.StateDAO
 import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
-import util.Assign.AssignOps
+import util.Assign
+import util.Identify.intIdentify
 
 
 class BaseDAOSpec extends Specification with Matchers {
 
+  def createEmployeeState(): StateDAO[Int, Employee[Int]] = StateDAO[Int, Employee[Int]]()
+
   "base dao" should {
 
     val employee = Employee(None, 0, "Ugbuemugbem", "Osas")
-    val employeeWithId = employee.assignId
+    val employeeWithId = implicitly[Assign[Int, Employee[Int]]].assign(employee)
     val employeeId = employeeWithId.id.get
 
     // It is an updated version of the employee.
@@ -20,7 +23,7 @@ class BaseDAOSpec extends Specification with Matchers {
     "read an instance by id" in {
 
       val (_, employeeOpt) =
-        StateDAO[Employee]()
+        createEmployeeState()
           .readById(employeeId)
           .run(Map(employeeId -> employeeWithId))
           .value
@@ -33,7 +36,7 @@ class BaseDAOSpec extends Specification with Matchers {
       val allEmployees = Map(employeeId -> employeeWithId)
 
       val (_, employeeSeq) =
-        StateDAO[Employee]()
+        createEmployeeState()
           .readAll()
           .run(allEmployees)
           .value
@@ -45,7 +48,7 @@ class BaseDAOSpec extends Specification with Matchers {
     "create an instance without id" in {
 
       val (employees, id) =
-        StateDAO[Employee]()
+        createEmployeeState()
           .create(employee)
           .run(Map())
           .value
@@ -56,10 +59,11 @@ class BaseDAOSpec extends Specification with Matchers {
 
     "not create an instance with id" in {
 
-      val (employees, id) = StateDAO[Employee]()
-        .create(employeeWithId)
-        .run(Map())
-        .value
+      val (employees, id) =
+        createEmployeeState()
+          .create(employeeWithId)
+          .run(Map())
+          .value
 
       employees.isEmpty must beTrue
       id === None
@@ -68,7 +72,7 @@ class BaseDAOSpec extends Specification with Matchers {
     "update an instance with id" in {
 
       val (employees, affected) =
-        StateDAO[Employee]()
+        createEmployeeState()
           .update(worker)
           .run(Map(employeeId -> employeeWithId))
           .value
@@ -80,7 +84,7 @@ class BaseDAOSpec extends Specification with Matchers {
     "delete an instance" in {
 
       val (employees, affected) =
-        StateDAO[Employee]()
+        createEmployeeState()
           .deleteById(employeeId)
           .run(Map(employeeId -> employeeWithId))
           .value
@@ -91,7 +95,7 @@ class BaseDAOSpec extends Specification with Matchers {
 
     "create, update, read all and delete instances" in {
 
-      val lang = StateDAO[Employee]()
+      val lang = createEmployeeState()
 
       val affected = for {
         id <- lang.create(employee)

@@ -1,22 +1,19 @@
 package util
 
 import cats.implicits.catsSyntaxOptionId
-import com.aimprosoft.model.{Department, Employee, Id, TIdentity}
+import com.aimprosoft.model.{Department, Employee, Id}
 
-trait Assign[M <: TIdentity with Product] {
-  def assign(id: Id, model: M): M
+trait Assign[K, M <: Id[K]] {
+
+  def assign(model: M): M
+
 }
-
 
 object Assign {
 
-  implicit class AssignOps[M <: TIdentity with Product](v: M)(implicit assigner: Assign[M]) {
-    def assignId: M = assigner.assign(v.hashCode, v)
-  }
+  implicit def employeeAssigner[K](implicit ident: Identify[K]): Assign[K, Employee[K]] = model => model.copy(id = ident.identify(model).some)
 
-  implicit val employeeAssigner: Assign[Employee] = (id, model) => model.copy(id = id.some)
-
-  implicit val departmentAssigner: Assign[Department] = (id, model) => model.copy(id = id.some)
+  implicit def departmentAssigner[K](implicit ident: Identify[K]): Assign[K, Department[K]] = model => model.copy(id = ident.identify(model).some)
 
 
 }

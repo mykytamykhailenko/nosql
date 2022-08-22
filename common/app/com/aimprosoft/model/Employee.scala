@@ -3,27 +3,25 @@ package com.aimprosoft.model
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json.{Format, JsPath, Reads, Writes}
 
-case class Employee(id: Option[Id],
-                    departmentId: Id,
-                    name: String,
-                    surname: String) extends TIdentity
+case class Employee[K](id: Option[K],
+                       departmentId: K,
+                       name: String,
+                       surname: String) extends Id[K]
 
 object Employee {
 
-  implicit val employeeWrite: Writes[Employee] = (
-    (JsPath \ "id").writeNullable[Id] and
-      (JsPath \ "department_id").write[Id] and
+  implicit def employeeWrite[K: Writes]: Writes[Employee[K]] = (
+    (JsPath \ "id").writeNullable[K] and
+      (JsPath \ "department_id").write[K] and
       (JsPath \ "name").write[String] and
       (JsPath \ "surname").write[String]
-    ) (unlift(Employee.unapply))
+    ) (unlift(Employee.unapply[K]))
 
-  implicit val employeeReads: Reads[Employee] = (
-    (JsPath \ "id").readNullable[Id] and
-      (JsPath \ "department_id").read[Id] and
+  implicit def employeeReads[K: Reads]: Reads[Employee[K]] = (
+    (JsPath \ "id").readNullable[K] and
+      (JsPath \ "department_id").read[K] and
       (JsPath \ "name").read[String] and
       (JsPath \ "surname").read[String]
-    )(Employee.apply _)
-
-  implicit val employeeFormat: Format[Employee] = Format(employeeReads, employeeWrite)
+    ) (Employee.apply[K] _)
 
 }

@@ -1,10 +1,9 @@
 package com.aimprosoft.service
 
 import com.aimprosoft.model._
-import com.aimprosoft.model.{Department, Employee}
 
-trait TDepartmentService[F[_]] extends TBasicService[F, Department] {
+trait TDepartmentService[F[_], K] extends TBasicService[F, K, Department[K]] {
 
-  def getEmployeesByDepartmentId(id: Id): F[Seq[Employee]]
+  def getEmployeesByDepartmentId(id: K): F[Seq[Employee[K]]]
 
 }

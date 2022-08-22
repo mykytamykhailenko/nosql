@@ -12,16 +12,16 @@ import scala.concurrent.ExecutionContext
 
 object Util {
 
-  def createDepartmentController(departmentDAO: BasicDAO[Id, Department],
-                                 employeeDAO: BasicDAO[Id, Employee])(implicit mat: Materializer[Id], ec: ExecutionContext): DepartmentController[Id] =
-    new DepartmentController[Id](
+  def createDepartmentController(departmentDAO: BasicDAO[Id, Int, Department[Int]],
+                                 employeeDAO: BasicDAO[Id, Int, Employee[Int]])(implicit mat: Materializer[Id], ec: ExecutionContext): DepartmentController[Id, Int] =
+    new DepartmentController[Id, Int](
       DepartmentService(departmentDAO, employeeDAO),
       Helpers.stubControllerComponents())
 
-  def createEmployeeController(departmentDAO: BasicDAO[Id, Department],
-                               employeeDAO: BasicDAO[Id, Employee])
-                              (implicit mat: Materializer[Id], ec: ExecutionContext): EmployeeController[Id] = {
-    new EmployeeController[Id](EmployeeService(departmentDAO, employeeDAO), Helpers.stubControllerComponents())
+  def createEmployeeController(departmentDAO: BasicDAO[Id, Int, Department[Int]],
+                               employeeDAO: BasicDAO[Id, Int, Employee[Int]])
+                              (implicit mat: Materializer[Id], ec: ExecutionContext): EmployeeController[Id, Int] = {
+    new EmployeeController[Id, Int](EmployeeService(departmentDAO, employeeDAO), Helpers.stubControllerComponents())
   }
 
 }

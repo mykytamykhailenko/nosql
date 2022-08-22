@@ -7,25 +7,25 @@ import com.aimprosoft.model._
 import com.google.inject.Inject
 
 // Alternative solution would be to create another language with this specific operation.
-case class EmployeeService[F[_] : Monad] @Inject()(departmentLang: BasicDAO[F, Department],
-                                                   employeeLang: BasicDAO[F, Employee]) extends TEmployeeService[F] {
+case class EmployeeService[F[_] : Monad, K] @Inject()(departmentLang: BasicDAO[F, K, Department[K]],
+                                                      employeeLang: BasicDAO[F, K, Employee[K]]) extends TEmployeeService[F, K] {
 
-  def create(value: Employee): F[Option[Id]] = employeeLang.create(value)
+  def create(value: Employee[K]): F[Option[K]] = employeeLang.create(value)
 
-  def update(value: Employee): F[Option[Affected]] = employeeLang.update(value)
+  def update(value: Employee[K]): F[Option[Affected]] = employeeLang.update(value)
 
-  def readAll(): F[Seq[Employee]] = employeeLang.readAll()
+  def readAll(): F[Seq[Employee[K]]] = employeeLang.readAll()
 
-  def readById(id: Id): F[Option[Employee]] = employeeLang.readById(id)
+  def readById(id: K): F[Option[Employee[K]]] = employeeLang.readById(id)
 
-  def deleteById(id: Id): F[Affected] = employeeLang.deleteById(id)
+  def deleteById(id: K): F[Affected] = employeeLang.deleteById(id)
 
-  def getEmployeeById(id: Id): F[Option[EmployeeFull]] = {
+  def getEmployeeById(id: K): F[Option[CompleteEmployee[K]]] = {
 
     val completeEmployee = for {
       Employee(employeeId, departmentId, name, surname) <- OptionT(employeeLang.readById(id))
       department <- OptionT(departmentLang.readById(departmentId))
-    } yield EmployeeFull(employeeId, department, name, surname)
+    } yield CompleteEmployee(employeeId, department, name, surname)
 
     completeEmployee.value
   }

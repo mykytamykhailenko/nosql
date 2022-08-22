@@ -16,8 +16,8 @@ class DepartmentServiceSpec extends Specification with Matchers {
 
     "find all employees belonging to the same department" in {
 
-      val departmentMock = mock[BasicDAO[Id, Department]]
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val departmentMock = mock[BasicDAO[Id, Int, Department[Int]]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.readAll()).thenReturn(Seq(Employee(None, 1, "Vel", "")))
 

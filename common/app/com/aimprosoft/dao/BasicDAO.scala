@@ -1,7 +1,6 @@
 package com.aimprosoft.dao
 
 import com.aimprosoft.model._
-import com.aimprosoft.model.TIdentity
 
 /**
  * Represents a set of basic actions.
@@ -9,16 +8,16 @@ import com.aimprosoft.model.TIdentity
  * @tparam F An effectful type
  * @tparam M Model type
  */
-trait BasicDAO[F[_], M <: TIdentity] {
+trait BasicDAO[F[_], K, M <: Id[K]] {
 
-  def create(value: M): F[Option[Id]]
+  def create(value: M): F[Option[K]]
 
   def update(value: M): F[Option[Affected]]
 
   def readAll(): F[Seq[M]]
 
-  def readById(id: Id): F[Option[M]]
+  def readById(id: K): F[Option[M]]
 
-  def deleteById(id: Id): F[Affected]
+  def deleteById(id: K): F[Affected]
 
 }

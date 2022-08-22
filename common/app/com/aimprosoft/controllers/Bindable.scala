@@ -1,11 +1,12 @@
 package com.aimprosoft.controllers
 
-import com.aimprosoft.model.Id
 import play.api.mvc.QueryStringBindable.Parsing
+
+import java.util.UUID
 
 object Bindable {
 
-  implicit object bindableId
-    extends Parsing[Id](Integer.parseInt, _.toString, (s, e) => s"Cannot parse parameter $s as Id (Int): ${e.getMessage}")
+  implicit object bindableUUID
+    extends Parsing[UUID](UUID.fromString, _.toString, (s, e) => s"Cannot parse parameter $s as UUID (String): ${e.getMessage}")
 
 }

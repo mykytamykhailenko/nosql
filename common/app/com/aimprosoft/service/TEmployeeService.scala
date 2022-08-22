@@ -1,10 +1,9 @@
 package com.aimprosoft.service
 
 import com.aimprosoft.model._
-import com.aimprosoft.model.{Employee, EmployeeFull}
 
-trait TEmployeeService[F[_]] extends TBasicService[F, Employee] {
+trait TEmployeeService[F[_], K] extends TBasicService[F, K, Employee[K]] {
 
-  def getEmployeeById(id: Id): F[Option[EmployeeFull]]
+  def getEmployeeById(id: K): F[Option[CompleteEmployee[K]]]
 
 }

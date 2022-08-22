@@ -6,7 +6,6 @@ import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model._
 import dao.StateDAO.BoolOps
 import util.Assign
-import util.Assign.AssignOps
 
 
 object StateDAO {
@@ -19,11 +18,11 @@ object StateDAO {
 }
 
 // Very functional, but cannot be combined.
-case class StateDAO[M <: TIdentity with Product : Assign]() extends BasicDAO[λ[R => State[Map[Id, M], R]], M] {
+case class StateDAO[K, M <: Id[K]]()(implicit as: Assign[K, M]) extends BasicDAO[λ[R => State[Map[K, M], R]], K, M] {
 
-  def create(value: M): State[Map[Id, M], Option[Id]] = State { v =>
+  def create(value: M): State[Map[K, M], Option[K]] = State { v =>
 
-    val created = value.assignId
+    val created = as.assign(value)
 
     def absent = (v + (created.id.get -> created)) -> created.id
 
@@ -32,7 +31,7 @@ case class StateDAO[M <: TIdentity with Product : Assign]() extends BasicDAO[λ[
     value.id.fold(absent)(_ => present)
   }
 
-  def update(value: M): State[Map[Id, M], Option[Affected]] = State { v =>
+  def update(value: M): State[Map[K, M], Option[Affected]] = State { v =>
 
     val updatedState = value.id.fold(v)(v.updated(_, value))
 
@@ -41,10 +40,10 @@ case class StateDAO[M <: TIdentity with Product : Assign]() extends BasicDAO[λ[
     updatedState -> affectedState
   }
 
-  def readAll(): State[Map[Id, M], Seq[M]] = State(v => v -> v.values.toSeq)
+  def readAll(): State[Map[K, M], Seq[M]] = State(v => v -> v.values.toSeq)
 
-  def readById(id: Id): State[Map[Id, M], Option[M]] = State(v => v -> v.get(id))
+  def readById(id: K): State[Map[K, M], Option[M]] = State(v => v -> v.get(id))
 
-  def deleteById(id: Id): State[Map[Id, M], Affected] = State(v => v - id -> v.contains(id).toAffected)
+  def deleteById(id: K): State[Map[K, M], Affected] = State(v => v - id -> v.contains(id).toAffected)
 
 }

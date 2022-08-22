@@ -2,12 +2,12 @@ package com.aimprosoft.model
 
 import play.api.libs.json.{Format, Json}
 
-case class Department(id: Option[Id],
-                      name: String,
-                      description: String) extends TIdentity
+case class Department[K](id: Option[K],
+                         name: String,
+                         description: String) extends Id[K]
 
 object Department {
 
-  implicit val departmentFormat: Format[Department] = Json.format[Department]
+  implicit def departmentFormat[K : Format]: Format[Department[K]] = Json.format[Department[K]]
 
 }

@@ -22,10 +22,10 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
   "basic action controller" should {
 
-    val departmentMock = mock[BasicDAO[Id, Department]]
+    val departmentMock = mock[BasicDAO[Id, Int, Department[Int]]]
 
     "read an entity by id" in {
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.readById(1)).thenReturn(Employee(None, 0, "Shon", "Boreas").some)
 
@@ -33,12 +33,12 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
       (contentAsJson(worker) \ "name").as[String] === "Shon"
       (contentAsJson(worker) \ "surname").as[String] === "Boreas"
-      (contentAsJson(worker) \ "department_id").as[model.Id] === 0
-      (contentAsJson(worker) \ "id").asOpt[model.Id] must beNone
+      (contentAsJson(worker) \ "department_id").as[Int] === 0
+      (contentAsJson(worker) \ "id").asOpt[Int] must beNone
     }
 
     "read all entities" in {
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.readAll()).thenReturn(Seq(Employee(None, 0, "Shon", "Boreas")))
 
@@ -46,23 +46,23 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
 
       (contentAsJson(workers) \ 0 \ "name").as[String] === "Shon"
       (contentAsJson(workers) \ 0 \ "surname").as[String] === "Boreas"
-      (contentAsJson(workers) \ 0 \ "department_id").as[model.Id] === 0
-      (contentAsJson(workers) \ 0 \ "id").asOpt[model.Id] must beNone
+      (contentAsJson(workers) \ 0 \ "department_id").as[Int] === 0
+      (contentAsJson(workers) \ 0 \ "id").asOpt[Int] must beNone
     }
 
     "delete an entity by id" in {
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.deleteById(1)).thenReturn(1)
 
       val confirmed = createEmployeeController(departmentMock, employeeMock).deleteById(1)(FakeRequest())
 
-      contentAsJson(confirmed).as[model.Id] === 1
+      contentAsJson(confirmed).as[Int] === 1
     }
 
     "create an entity" in {
 
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.create(Employee(None, 0, "Shon", "Boreas"))).thenReturn(0.some)
 
@@ -80,12 +80,12 @@ class BasicActionControllerSpec extends PlaySpecification with Results {
               .withBody(worker)
               .withHeaders(CONTENT_TYPE -> JSON))
 
-      contentAsJson(confirmed).asOpt[model.Id] must beSome[model.Id]
+      contentAsJson(confirmed).asOpt[Int] must beSome[Int]
     }
 
     "update a record with id" in {
 
-      val employeeMock = mock[BasicDAO[Id, Employee]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
 
       when(employeeMock.update(Employee(Some(1), 0, "Shon", "Boreas"))).thenReturn(1.some)
 
