@@ -5,7 +5,7 @@ CREATE TABLE space.employee (
   department_id uuid,
   name text,
   surname text,
-  PRIMARY KEY ((id), name, surname)
+  PRIMARY KEY ((id), name, surname) -- I cannot update clustering keys.
 );
 
 CREATE TABLE space.department (
