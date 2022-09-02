@@ -9,13 +9,15 @@ import scala.concurrent.duration.{Duration, DurationInt, DurationLong}
 
 object Util {
 
-  val noAffected: Affected = 0
+  val unaffected: Affected = 0
 
   val one: Affected = 1
 
   def departmentIsNotEmpty(id: UUID) = new Throwable(s"Department '$id' is not empty")
 
   def departmentDoesNotExist(id: UUID) = new Throwable(s"Department '$id' does not exist")
+
+  def nameIsAlreadyTaken(name: String) = new Throwable(s"'$name' is already taken")
 
   def employeeBelongsToUnrealDepartment(id: UUID) = new Throwable(s"This employee belongs to department ('$id'), which does not exist")
 

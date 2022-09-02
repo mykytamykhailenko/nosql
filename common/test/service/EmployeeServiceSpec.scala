@@ -24,7 +24,19 @@ class EmployeeServiceSpec extends Specification with Matchers {
 
       val service = EmployeeService(departmentMock, employeeMock)
 
-      service.getEmployeeById(1) === Some(CompleteEmployee(1.some, Department(0.some, "Scala", ""), "Shon", "Crawler"))
+      service.getCompleteEmployeeById(1) === Some(CompleteEmployee(1.some, Department(0.some, "Scala", ""), "Shon", "Crawler"))
+    }
+
+    "find all employees belonging to the same department" in {
+
+      val departmentMock = mock[BasicDAO[Id, Int, Department[Int]]]
+      val employeeMock = mock[BasicDAO[Id, Int, Employee[Int]]]
+
+      when(employeeMock.readAll()).thenReturn(Seq(Employee(None, 1, "Vel", "")))
+
+      val service = EmployeeService(departmentMock, employeeMock)
+
+      service.getEmployeesByDepartmentId(1) === Seq(Employee(None, 1, "Vel", ""))
     }
 
   }

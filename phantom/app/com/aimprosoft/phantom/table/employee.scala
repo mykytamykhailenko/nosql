@@ -15,7 +15,7 @@ abstract class employee extends Table[employee, Employee[UUID]] {
 
   object department_id extends UUIDColumn
 
-  val prepInsert =
+  lazy val prepInsert =
     insert()
       .p_value(_.id, ?)
       .p_value(_.department_id, ?)
@@ -38,21 +38,4 @@ abstract class employee extends Table[employee, Employee[UUID]] {
       .timestamp(duration)
       .prepare()
 
-
-  /*
-    def readById(id: UUID) = select.where(_.id eqs ?).prepare().bind(id)
-
-    def store(employee: Employee[UUID]) = {
-
-      val worker = (employee.id.get, employee.departmentId, employee.name, employee.surname)
-
-      insert
-        .p_value(_.id, ?)
-        .p_value(_.department_id, ?)
-        .p_value(_.name, ?)
-        .p_value(_.surname, ?)
-        .prepare()
-        .bind(worker)
-    }
-  */
 }

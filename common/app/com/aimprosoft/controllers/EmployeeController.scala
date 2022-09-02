@@ -16,8 +16,12 @@ class EmployeeController[F[_] : Monad, K: Format] @Inject()(employeeService: TEm
                                                            (implicit mat: Materializer[F], ec: ExecutionContext) extends
   BasicActionController[F, K, Employee[K]](employeeService, controllerComponents) {
 
-  def getEmployeeWithDepartmentById(id: K): Action[AnyContent] = Action.async { _ =>
-    mat.materialize(employeeService.getEmployeeById(id)).map(v => Ok(Json.toJson(v)))
+  def getCompleteEmployeeById(id: K): Action[AnyContent] = Action.async { _ =>
+    mat.materialize(employeeService.getCompleteEmployeeById(id)).map(v => Ok(Json.toJson(v)))
+  }
+
+  def getEmployeesByDepartmentId(id: K): Action[AnyContent] = Action.async { _ =>
+    mat.materialize(employeeService.getEmployeesByDepartmentId(id)).map(v => Ok(Json.toJson(v)))
   }
 
 }

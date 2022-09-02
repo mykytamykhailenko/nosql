@@ -15,7 +15,7 @@ abstract class employee_by_department_id extends Table[employee_by_department_id
 
   object id extends UUIDColumn with ClusteringOrder
 
-  val prepInsert =
+  lazy val prepInsert =
     insert()
       .p_value(_.id, ?)
       .p_value(_.department_id, ?)
@@ -37,19 +37,5 @@ abstract class employee_by_department_id extends Table[employee_by_department_id
       .where(_.id eqs ?)
       .timestamp(duration)
       .prepare()
-
-  /*
-    def insertPrepared(employee: Employee[UUID]) = {
-      val worker = (employee.id.get, employee.departmentId, employee.name, employee.surname)
-
-      insert
-        .p_value(_.id, ?)
-        .p_value(_.department_id, ?)
-        .p_value(_.name, ?)
-        .p_value(_.surname, ?)
-        .prepare()
-        .bind(worker)
-    }
-  */
 
 }

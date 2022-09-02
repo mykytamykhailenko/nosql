@@ -3,10 +3,9 @@ package controller
 
 import cats.Id
 import cats.implicits.catsSyntaxOptionId
-import com.aimprosoft.controllers.EmployeeController
-import com.aimprosoft.model
-import com.aimprosoft.model.{CompleteEmployee, Department}
-import com.aimprosoft.service.EmployeeService
+import com.aimprosoft.controllers.{DepartmentController, EmployeeController}
+import com.aimprosoft.model.{CompleteEmployee, Department, Employee}
+import com.aimprosoft.service.{DepartmentService, EmployeeService}
 import mat.IdMaterializer
 import org.mockito.Mockito.when
 import org.specs2.mock.Mockito.mock
@@ -25,9 +24,9 @@ class EmployeeControllerSpec extends PlaySpecification with Results {
 
       val service = mock[EmployeeService[Id, Int]]
 
-      when(service.getEmployeeById(1)).thenReturn(CompleteEmployee(1.some, Department(0.some, "Scala", ""), "Shon", "Crawler").some)
+      when(service.getCompleteEmployeeById(1)).thenReturn(CompleteEmployee(1.some, Department(0.some, "Scala", ""), "Shon", "Crawler").some)
 
-      val employee = new EmployeeController[Id, Int](service, Helpers.stubControllerComponents()).getEmployeeWithDepartmentById(1)(FakeRequest())
+      val employee = new EmployeeController[Id, Int](service, Helpers.stubControllerComponents()).getCompleteEmployeeById(1)(FakeRequest())
 
       (contentAsJson(employee) \ "id").as[Int] === 1
       (contentAsJson(employee) \ "name").as[String] === "Shon"
@@ -36,6 +35,16 @@ class EmployeeControllerSpec extends PlaySpecification with Results {
       (contentAsJson(employee) \ "department" \ "id").as[Int] === 0
       (contentAsJson(employee) \ "department" \ "name").as[String] === "Scala"
       (contentAsJson(employee) \ "department" \ "description").as[String] === ""
+    }
+
+    "read all employees from the same department" in {
+      val service = mock[EmployeeService[Id, Int]]
+
+      when(service.getEmployeesByDepartmentId(0)).thenReturn(Seq(Employee(None, 0, "Vel", "")))
+
+      val employees = new EmployeeController[Id, Int](service, Helpers.stubControllerComponents()).getEmployeesByDepartmentId(0)(FakeRequest())
+
+      (contentAsJson(employees) \ 0 \ "name").as[String] === "Vel"
     }
 
   }

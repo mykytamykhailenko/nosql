@@ -31,10 +31,32 @@ class DoobieEmployeeActionSpec(implicit ee: ExecutionEnv) extends DoobieSpec[IO]
       val surname = for {
         scala <- departmentLang.create(Department(None, "Scala", ""))
         id <- employeeLang.create(Employee(None, scala.get, "Tom", "Thomson"))
-        employee <- service.getEmployeeById(id.get)
+        employee <- service.getCompleteEmployeeById(id.get)
       } yield employee.map(_.surname)
 
       mat.materialize(surname) must beSome[String]("Thomson").await
+    }
+
+    "get all employees from the same department" in {
+
+      val departmentIds = for {
+        scala <- departmentLang.create(Department(None, "Scala", ""))
+        java <- departmentLang.create(Department(None, "Java", ""))
+      } yield (scala.get, java.get)
+
+      val employeeIds = for {
+        (scala, java) <- departmentIds
+        _ <- employeeLang.create(Employee(None, scala, "Tom", "Thomson"))
+        _ <- employeeLang.create(Employee(None, scala, "Jul", "Marko"))
+        _ <- employeeLang.create(Employee(None, java, "Carlo", "Frank"))
+      } yield scala
+
+      val surnames = for {
+        scala <- employeeIds
+        employees <- service.getEmployeesByDepartmentId(scala)
+      } yield employees.map(_.surname)
+
+      mat.materialize(surnames) must contain("Thomson", "Marko").await
     }
 
   }

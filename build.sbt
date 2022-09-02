@@ -80,7 +80,8 @@ lazy val phantom = (project in file("phantom"))
       "org.mockito" % "mockito-core" % "4.7.0" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable._",
-      "com.aimprosoft.model._"),
+      "com.aimprosoft.model._",
+      "java.util.UUID"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   )
   .enablePlugins(PlayScala)

@@ -35,7 +35,11 @@ class SlickEmployeeActionSpec(implicit ee: ExecutionEnv) extends SlickSpec with 
     val service = EmployeeService[DBIO, Int](SlickDAO(departmentTable), SlickDAO(employeeTable))
 
     "read an employee with his department" in {
-      mat.materialize(service.getEmployeeById(0)) must beSome[CompleteEmployee[Int]].await
+      mat.materialize(service.getCompleteEmployeeById(0)) must beSome[CompleteEmployee[Int]].await
+    }
+
+    "read all employees from the same department" in {
+      mat.materialize(service.getEmployeesByDepartmentId(0)) must contain(employees.filter(_.departmentId == 0).toSet).await
     }
 
   }

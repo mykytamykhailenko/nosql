@@ -6,7 +6,7 @@
 # An example controller showing a sample home page
 GET             /department                     com.aimprosoft.doobie.controllers.DoobieDepartmentController.readAll()
 GET             /department/:id                 com.aimprosoft.doobie.controllers.DoobieDepartmentController.readById(id: Int)
-GET             /department/:id/employee        com.aimprosoft.doobie.controllers.DoobieDepartmentController.getEmployeesByDepartmentId(id: Int)
+GET             /department/:id/employee        com.aimprosoft.doobie.controllers.DoobieEmployeeController.getEmployeesByDepartmentId(id: Int)
 POST            /department                     com.aimprosoft.doobie.controllers.DoobieDepartmentController.create()
 PUT             /department                     com.aimprosoft.doobie.controllers.DoobieDepartmentController.update()
 DELETE          /department/:id                 com.aimprosoft.doobie.controllers.DoobieDepartmentController.deleteById(id: Int)
@@ -14,7 +14,7 @@ DELETE          /department/:id                 com.aimprosoft.doobie.controller
 
 GET             /employee                       com.aimprosoft.doobie.controllers.DoobieEmployeeController.readAll()
 GET             /employee/:id                   com.aimprosoft.doobie.controllers.DoobieEmployeeController.readById(id: Int)
-GET             /employee/:id/department        com.aimprosoft.doobie.controllers.DoobieEmployeeController.getEmployeeWithDepartmentById(id: Int)
+GET             /employee/:id/department        com.aimprosoft.doobie.controllers.DoobieEmployeeController.getCompleteEmployeeById(id: Int)
 POST            /employee                       com.aimprosoft.doobie.controllers.DoobieEmployeeController.create()
 PUT             /employee                       com.aimprosoft.doobie.controllers.DoobieEmployeeController.update()
 DELETE          /employee/:id                   com.aimprosoft.doobie.controllers.DoobieEmployeeController.deleteById(id: Int)

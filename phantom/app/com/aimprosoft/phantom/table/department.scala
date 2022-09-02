@@ -1,5 +1,6 @@
 package com.aimprosoft.phantom.table
 
+import cats.implicits.catsSyntaxOptionId
 import com.aimprosoft.model.Department
 import com.outworkers.phantom.dsl._
 
@@ -13,14 +14,15 @@ abstract class department extends Table[department, Department[UUID]] {
 
   object description extends StringColumn with ClusteringOrder
 
-  val prepInsert =
+  override def fromRow(row: Row): Department[UUID] = Department(id(row).some, name(row), description(row))
+
+  lazy val prepInsert =
     insert()
       .p_value(_.id, ?)
       .p_value(_.name, ?)
       .p_value(_.description, ?)
       .prepare()
 
-  // equivalent of writing USING TIMESTAMP
   def insertAt(duration: Duration) =
     insert()
       .timestamp(duration)

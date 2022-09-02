@@ -13,10 +13,4 @@ import scala.concurrent.ExecutionContext
 class DepartmentController[F[_] : Monad, K: Format] @Inject()(departmentService: TDepartmentService[F, K],
                                                               controllerComponents: ControllerComponents)
                                                              (implicit mat: Materializer[F], ec: ExecutionContext) extends
-  BasicActionController[F, K, Department[K]](departmentService, controllerComponents) {
-
-  def getEmployeesByDepartmentId(id: K): Action[AnyContent] = Action.async { _ =>
-    mat.materialize(departmentService.getEmployeesByDepartmentId(id)).map(v => Ok(Json.toJson(v)))
-  }
-
-}
+  BasicActionController[F, K, Department[K]](departmentService, controllerComponents)

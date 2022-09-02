@@ -20,7 +20,7 @@ case class EmployeeService[F[_] : Monad, K] @Inject()(departmentLang: BasicDAO[F
 
   def deleteById(id: K): F[Affected] = employeeLang.deleteById(id)
 
-  def getEmployeeById(id: K): F[Option[CompleteEmployee[K]]] = {
+  def getCompleteEmployeeById(id: K): F[Option[CompleteEmployee[K]]] = {
 
     val completeEmployee = for {
       Employee(employeeId, departmentId, name, surname) <- OptionT(employeeLang.readById(id))
@@ -29,6 +29,14 @@ case class EmployeeService[F[_] : Monad, K] @Inject()(departmentLang: BasicDAO[F
 
     completeEmployee.value
   }
+
+  import cats.syntax.functor._
+
+  // It is a highly inefficient implementation created for the showcase only.
+  def getEmployeesByDepartmentId(id: K): F[Seq[Employee[K]]] =
+    for {
+      workers <- employeeLang.readAll()
+    } yield workers.filter(_.departmentId == id)
 
 }
 

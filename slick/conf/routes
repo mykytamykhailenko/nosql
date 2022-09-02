@@ -6,7 +6,7 @@
 # An example controller showing a sample home page
 GET             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.readAll()
 GET             /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.readById(id: Int)
-GET             /department/:id/employee        com.aimprosoft.slick.controllers.SlickDepartmentController.getEmployeesByDepartmentId(id: Int)
+GET             /department/:id/employee        com.aimprosoft.slick.controllers.SlickEmployeeController.getEmployeesByDepartmentId(id: Int)
 POST            /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.create()
 PUT             /department                     com.aimprosoft.slick.controllers.SlickDepartmentController.update()
 DELETE          /department/:id                 com.aimprosoft.slick.controllers.SlickDepartmentController.deleteById(id: Int)
@@ -14,7 +14,7 @@ DELETE          /department/:id                 com.aimprosoft.slick.controllers
 
 GET             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.readAll()
 GET             /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.readById(id: Int)
-GET             /employee/:id/department        com.aimprosoft.slick.controllers.SlickEmployeeController.getEmployeeWithDepartmentById(id: Int)
+GET             /employee/:id/department        com.aimprosoft.slick.controllers.SlickEmployeeController.getCompleteEmployeeById(id: Int)
 POST            /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.create()
 PUT             /employee                       com.aimprosoft.slick.controllers.SlickEmployeeController.update()
 DELETE          /employee/:id                   com.aimprosoft.slick.controllers.SlickEmployeeController.deleteById(id: Int)
