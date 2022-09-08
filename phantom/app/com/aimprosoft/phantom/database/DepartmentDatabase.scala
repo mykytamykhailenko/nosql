@@ -1,12 +1,12 @@
 package com.aimprosoft.phantom.database
 
+import com.aimprosoft.phantom.connection.Connection
 import com.aimprosoft.phantom.table._
 import com.outworkers.phantom.dsl._
 
 import javax.inject.Inject
 
-
-class DepartmentDatabase @Inject() (override val connector: CassandraConnection) extends Database[DepartmentDatabase](connector) {
+class DepartmentDatabase @Inject() (conn: Connection) extends Database[DepartmentDatabase](conn.getCassandraConnection()) {
 
   object employees extends employee with Connector
 
@@ -15,6 +15,5 @@ class DepartmentDatabase @Inject() (override val connector: CassandraConnection)
   object departments extends department with Connector
 
   object departmentNames extends department_name with Connector
-
 
 }

@@ -1,9 +1,9 @@
 import sbt.addCompilerPlugin
 
-name := """monads"""
+name := "playapp"
 organization := "aimprosoft"
 
-version := "1.0-SNAPSHOT"
+version := "1.0"
 
 val confJavaOption = "-Dconfig.file=conf/test.conf"
 
@@ -69,15 +69,18 @@ lazy val doobie = (project in file("doobie"))
 lazy val phantom = (project in file("phantom"))
   .dependsOn(root)
   .settings(
+    name := "phantom",
+    version := "1.0",
     scalaVersion := "2.13.6",
-    Test / fork := true,
-    Test / javaOptions += confJavaOption,
     libraryDependencies ++= Seq(
       guice,
+      ws,
+      specs2 % Test,
       "org.scala-lang" % "scala-reflect" % "2.13.8",
       "com.outworkers" %% "phantom-dsl" % "2.59.0",
-      "org.specs2" %% "specs2-core" % "4.16.1" % Test,
-      "org.mockito" % "mockito-core" % "4.7.0" % Test),
+      "org.mockito" % "mockito-core" % "4.7.0" % Test,
+      "org.testcontainers" % "testcontainers" % "1.17.3" % Test,
+      "org.testcontainers" % "cassandra" % "1.17.3" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable._",
       "com.aimprosoft.model._",

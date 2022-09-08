@@ -1,4 +1,4 @@
-CREATE KEYSPACE divisions WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 3 };
+CREATE KEYSPACE divisions WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 };
 
 CREATE TABLE divisions.employee (
   id UUID,
@@ -20,7 +20,7 @@ CREATE MATERIALIZED VIEW divisions.employee_by_department_id AS
     PRIMARY KEY ((department_id), surname, name, id);
 */
 
-CREATE TABLE space.employee_by_department_id (
+CREATE TABLE divisions.employee_by_department_id (
   department_id UUID,
   id UUID,
   name TEXT,

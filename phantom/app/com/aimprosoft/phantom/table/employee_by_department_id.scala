@@ -15,6 +15,8 @@ abstract class employee_by_department_id extends Table[employee_by_department_id
 
   object id extends UUIDColumn with ClusteringOrder
 
+  override def fromRow(r: Row): Employee[UUID] = Employee(Some(id(r)), department_id(r), name(r), surname(r))
+
   lazy val prepInsert =
     insert()
       .p_value(_.id, ?)

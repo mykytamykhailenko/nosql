@@ -15,6 +15,8 @@ abstract class employee extends Table[employee, Employee[UUID]] {
 
   object department_id extends UUIDColumn
 
+  override def fromRow(r: Row): Employee[UUID] = Employee(Some(id(r)), department_id(r), name(r), surname(r))
+
   lazy val prepInsert =
     insert()
       .p_value(_.id, ?)
