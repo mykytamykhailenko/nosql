@@ -17,7 +17,7 @@ class Connection @Inject() (conf: Configuration) {
 
     val keySpace = conf.get[String]("cassandra.keyspace")
 
-    ContactPoint(host, port).withClusterBuilder(_.withCredentials(user, password)).keySpace(keySpace)
+    ContactPoint(host, port).withClusterBuilder(_.withCredentials(user, password)).noHeartbeat().keySpace(keySpace)
   }
 
 

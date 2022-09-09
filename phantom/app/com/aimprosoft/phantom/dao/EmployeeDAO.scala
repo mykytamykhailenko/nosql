@@ -67,7 +67,7 @@ class EmployeeDAO @Inject()(val database: DepartmentDatabase) extends TEmployeeD
 
     val creation = for {
       division <- dept
-    } yield division.fold(Future.failed[Option[UUID]](departmentDoesNotExist(did)))(_ => batchCreate(employee))
+    } yield division.fold(Future.failed[Option[UUID]](DepartmentDoesNotExist(did)))(_ => batchCreate(employee))
 
     creation.flatten
 
@@ -124,15 +124,17 @@ class EmployeeDAO @Inject()(val database: DepartmentDatabase) extends TEmployeeD
         .bind(id)
         .one()
 
+    def up(did: Option[UUID]) = did.fold(Future.failed[Option[Affected]](DepartmentDoesNotExist(employee.departmentId)))(_ => batchUpdate(employee))
+
     val batch = for {
       division <- dept
-      _ <- worker
-    } yield division.fold(Future.failed[Option[Affected]](departmentDoesNotExist(employee.departmentId)))(_ => batchUpdate(employee))
+      workman <- worker
+    } yield workman.fold(unaffected.some.pure[Future])(_ => up(division))
 
     batch.flatten
   }
 
-  def readAll(): Future[Seq[Employee[UUID]]] = database.employees.select.fetch()
+  def readAll(): Future[Seq[Employee[UUID]]] = database.employees.select.fetch() // Works because we have little data.
 
   def readById(id: UUID): Future[Option[Employee[UUID]]] = database.employees.select.where(_.id eqs ?).prepare().bind(id).one()
 
@@ -171,5 +173,10 @@ class EmployeeDAO @Inject()(val database: DepartmentDatabase) extends TEmployeeD
     deletion.flatten
   }
 
+  // For testing only.
+  private[dao] def truncate() = for {
+    _ <- database.employees.truncate().future()
+    _ <- database.employeeByDepartmentId.truncate().future()
+  } yield ()
 
 }

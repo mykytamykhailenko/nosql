@@ -13,14 +13,13 @@ object Util {
 
   val one: Affected = 1
 
-  def departmentIsNotEmpty(id: UUID) = new Throwable(s"Department '$id' is not empty")
+  abstract class DepException(message: String) extends Throwable(message)
 
-  def departmentDoesNotExist(id: UUID) = new Throwable(s"Department '$id' does not exist")
+  case class DepartmentIsNotEmpty(id: UUID) extends DepException(s"Department '$id' is not empty")
 
-  def nameIsAlreadyTaken(name: String) = new Throwable(s"'$name' is already taken")
+  case class DepartmentDoesNotExist(id: UUID) extends DepException(s"Department '$id' does not exist")
 
-  def employeeBelongsToUnrealDepartment(id: UUID) = new Throwable(s"This employee belongs to department ('$id'), which does not exist")
-
+  case class DepartmentNameIsAlreadyTaken(name: String) extends DepException(s"'$name' is already taken")
 
   val aMicrosecond: Duration = 1.microsecond
 

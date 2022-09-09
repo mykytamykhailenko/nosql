@@ -52,7 +52,7 @@ class DepartmentDAO @Inject()(val database: DepartmentDatabase) extends BasicDAO
 
     val creation = for {
       naming <- name
-    } yield naming.fold(insert(dept))(name => Future.failed(nameIsAlreadyTaken(name)))
+    } yield naming.fold(insert(dept))(name => Future.failed(DepartmentNameIsAlreadyTaken(name)))
 
     creation.flatten
 
@@ -103,7 +103,7 @@ class DepartmentDAO @Inject()(val database: DepartmentDatabase) extends BasicDAO
       name <- occupiedName
     } yield name.fold(batchUpdate(previousDept, currentDept)) { name =>
       if (previousDept.name == name) batchUpdate(previousDept, currentDept)
-      else Future.failed(nameIsAlreadyTaken(name))
+      else Future.failed(DepartmentNameIsAlreadyTaken(name))
     }
 
     update.flatten
@@ -184,9 +184,15 @@ class DepartmentDAO @Inject()(val database: DepartmentDatabase) extends BasicDAO
     val deletion = for {
       employee <- worker
       division <- dept
-    } yield employee.fold(delete(division))(_ => Future.failed[Affected](departmentIsNotEmpty(id)))
+    } yield employee.fold(delete(division))(_ => Future.failed[Affected](DepartmentIsNotEmpty(id)))
 
     deletion.flatten
   }
+
+  // For testing only.
+  private[dao] def truncate() = for {
+    _ <- database.departments.truncate().future()
+    _ <- database.departmentNames.truncate().future()
+  } yield ()
 
 }

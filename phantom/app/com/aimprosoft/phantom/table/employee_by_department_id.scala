@@ -36,7 +36,7 @@ abstract class employee_by_department_id extends Table[employee_by_department_id
 
   def deleteAt(duration: Duration) =
     delete
-      .where(_.id eqs ?)
+      .where(_.department_id eqs ?)
       .timestamp(duration)
       .prepare()
 

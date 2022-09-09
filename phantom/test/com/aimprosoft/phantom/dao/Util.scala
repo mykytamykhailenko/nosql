@@ -1,3 +1,5 @@
+package com.aimprosoft.phantom.dao
+
 import org.testcontainers.containers.CassandraContainer
 import org.testcontainers.utility.DockerImageName
 import play.api.libs.json.Reads
