@@ -18,7 +18,7 @@ import java.util.UUID.randomUUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
-class PhantomSpec(implicit ee: ExecutionEnv) extends Specification
+class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
   with FutureMatchers
   with BeforeAfterAll
   with BeforeEach {

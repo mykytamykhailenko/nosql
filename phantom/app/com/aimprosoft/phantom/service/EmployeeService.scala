@@ -11,7 +11,7 @@ import com.outworkers.phantom.dsl.UUID
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EmployeeService @Inject()(employees: TEmployeeDAO, departments: BasicDAO[Future, UUID, Department[UUID]])(implicit ec: ExecutionContext) extends TEmployeeService[Future, UUID] {
+case class EmployeeService @Inject()(employees: TEmployeeDAO, departments: BasicDAO[Future, UUID, Department[UUID]])(implicit ec: ExecutionContext) extends TEmployeeService[Future, UUID] {
 
   def getCompleteEmployeeById(id: UUID): Future[Option[CompleteEmployee[UUID]]] = {
 
