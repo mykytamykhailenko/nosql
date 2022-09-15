@@ -5,6 +5,7 @@ import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.model.{Affected, Department}
 import com.aimprosoft.phantom.database.DepartmentDatabase
 import com.aimprosoft.phantom.util.Util._
+import com.aimprosoft.util.DepException._
 import com.google.inject.Inject
 import com.outworkers.phantom.dsl._
 

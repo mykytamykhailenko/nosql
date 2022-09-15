@@ -1,0 +1,26 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+# An example controller showing a sample home page
+GET             /health                         com.aimprosoft.controllers.HealthcheckController.healthCheck()
+
+GET             /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.readAll()
+GET             /departments/:id                 com.aimprosoft.phantom.controller.PhantomDepartmentController.readById(id: UUID)
+GET             /departments/:id/employees       com.aimprosoft.phantom.controller.PhantomEmployeeController.getEmployeesByDepartmentId(id: UUID)
+POST            /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.create()
+PUT             /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.update()
+DELETE          /departments/:id                 com.aimprosoft.phantom.controller.PhantomDepartmentController.deleteById(id: UUID)
+
+
+GET             /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.readAll()
+GET             /employees/:id                   com.aimprosoft.phantom.controller.PhantomEmployeeController.readById(id: UUID)
+GET             /employees/:id/departments       com.aimprosoft.phantom.controller.PhantomEmployeeController.getCompleteEmployeeById(id: UUID)
+POST            /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.create()
+PUT             /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.update()
+DELETE          /employees/:id                   com.aimprosoft.phantom.controller.PhantomEmployeeController.deleteById(id: UUID)
+
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

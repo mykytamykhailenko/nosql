@@ -89,4 +89,28 @@ lazy val phantom = (project in file("phantom"))
   )
   .enablePlugins(PlayScala)
 
+lazy val hbase = (project in file("hbase"))
+  .dependsOn(root)
+  .settings(
+    name := "hbase",
+    version := "1.0",
+    scalaVersion := "2.13.6",
+    libraryDependencies ++= Seq(
+      guice,
+      ws,
+      "org.apache.hadoop" % "hadoop-core" % "1.2.1",
+      "org.apache.hbase" % "hbase" % "2.4.14",
+      "org.apache.hbase" % "hbase-client" % "2.4.14",
+      specs2 % Test,
+      "io.jvm.uuid" %% "scala-uuid" % "0.3.1",
+      "org.mockito" % "mockito-core" % "4.8.0" % Test,
+      "org.testcontainers" % "testcontainers" % "1.17.3" % Test),
+    routesImport ++= Seq(
+      "com.aimprosoft.controllers.Bindable._",
+      "com.aimprosoft.model._",
+      "java.util.UUID"),
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+  )
+  .enablePlugins(PlayScala)
+
 

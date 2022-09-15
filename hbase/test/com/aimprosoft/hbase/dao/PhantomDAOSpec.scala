@@ -1,9 +1,11 @@
-package com.aimprosoft.phantom.dao
+package com.aimprosoft.hbase.dao
 
 import cats.data.OptionT
+import com.aimprosoft.hbase.dao.Util.ScalaCassandraContainer
+import com.aimprosoft.hbase.util.Util.{DepartmentDoesNotExist, DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
 import com.aimprosoft.model.{Department, Employee}
-import com.aimprosoft.phantom.dao.Util.{ScalaCassandraContainer, cassandraPort, cassandraWaitDuration, once}
-import com.aimprosoft.util.DepException._
+import Util.{ScalaCassandraContainer, cassandraPort, cassandraWaitDuration, once}
+import com.aimprosoft.hbase.util.Util.{DepartmentDoesNotExist, DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
 import com.outworkers.phantom.dsl.UUID
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers

@@ -1,10 +1,9 @@
-package com.aimprosoft.phantom.dao
+package com.aimprosoft.hbase.dao
 
 import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxOptionId, none}
+import com.aimprosoft.hbase.database.DepartmentDatabase
 import com.aimprosoft.model.{Affected, Employee}
-import com.aimprosoft.phantom.database.DepartmentDatabase
-import com.aimprosoft.phantom.util.Util._
-import com.aimprosoft.util.DepException._
+import com.aimprosoft.hbase.util.Util._
 import com.outworkers.phantom.dsl._
 
 import java.util.UUID.{randomUUID => uuid}
