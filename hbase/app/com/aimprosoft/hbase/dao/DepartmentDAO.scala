@@ -9,7 +9,7 @@ import com.aimprosoft.model.{Affected, Department}
 import com.aimprosoft.util.DepException.DepartmentNameIsAlreadyTaken
 import com.google.inject.Inject
 import io.jvm.uuid._
-import org.apache.hadoop.hbase.client.{AsyncConnection, Delete, Result, Scan}
+import org.apache.hadoop.hbase.client.{Result, Scan}
 import org.apache.hadoop.hbase.util.Bytes.toBytes
 
 import javax.inject.Singleton
@@ -22,12 +22,11 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
   private[this] implicit val scheduler: Scheduler = system.scheduler
 
-  import connectionLifecycle._
-
   private[dao] def usingBothTables[T](calc: ((AsyncTable, AsyncTable)) => Future[T]): Future[T] = {
+
     val res = for {
-      dep <- departments
-      name <- names
+      dep <- connectionLifecycle.departments
+      name <- connectionLifecycle.names
     } yield calc((dep, name))
 
     res.flatten
@@ -63,13 +62,9 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
     def createDep = departments.put(putDep).asScala
 
-    val createDepAndReapply = createDep.recoverWith(_ => retries(createDep _))
-
     def createName = names.put(putName).asScala
 
-    val createNameAndReapply = createName.recoverWith(_ => retries(createName _))
-
-    createDepAndReapply.zip(createNameAndReapply).map(_ => division.id)
+    retries(createDep _).zip(retries(createName _)).map(_ => division.id)
   }
 
   /**
@@ -126,12 +121,13 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
   /**
    * This method is used to update the department's description only.
+   * Use this method when you want to avoid updating ''department_name''.
    *
-   * This method can roll back the update in case of failure.
+   * This method can reapply the update in case of failure.
    *
    * @param departments The department table
    * @param dep         The department
-   * @return Always Some(1)
+   * @return It is always 1
    */
   private[dao] def updateDescription(departments: AsyncTable, dep: Department[UUID]): Future[Option[Affected]] = {
 
@@ -139,68 +135,100 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
     val put = createPutForDesc(dep, currentTime)
 
-    departments
-      .put(put)
-      .asScala
-      .recoverWith(_ => rollbackByKey(departments, put.getRow, currentTime))
-      .map(_ => one.some)
+    def putDesc = departments.put(put).asScala
+
+    retries(putDesc _).map(_ => one.some)
   }
 
-  private[dao] def foo(departments: AsyncTable, dep: Department[UUID]): Future[Option[Affected]] = {
+  /**
+   * Drops previously used name and creates the depart anew.
+   *
+   * Because the department's UUID stays the same, the department will not be created, but updated.
+   *
+   * The department name will be created from scratch.
+   *
+   * @param departments The department table
+   * @param names       The department name table
+   * @param dep         The department
+   * @return Affected departments
+   */
+  private[dao] def updateDepartment(departments: AsyncTable,
+                                    names: AsyncTable,
+                                    dep: Department[UUID]): Future[Option[Affected]] = {
 
-    val currentTime = System.currentTimeMillis()
+    val delete = deleteById(dep.id.get)
 
-    val putDep = createPut(dep.id.get.byteArray, dpBytes, currentTime, Map(
-      nameBytes -> toBytes(dep.name),
-      descBytes -> toBytes(dep.description)
-    ))
+    val update = createDivision(departments, names, dep)
 
-    departments
-      .put(putDep)
-      .asScala
-      .recoverWith(_ => rollbackByKey(departments, putDep.getRow, currentTime))
-      .map(_ => one.some)
+    delete.zip(update).map(_ => one.some)
   }
 
-  private[dao] def updateDivisionForFreeName(departments: AsyncTable,
-                                             names: AsyncTable,
-                                             division: Result,
-                                             name: Result,
-                                             dep: Department[UUID]): Future[Option[Affected]] = {
+  /**
+   * This method can handle three scenarios:
+   *  1. The name of the department is completely unique.
+   *     Then, drop its previous name and create the department anew.
+   *  1. The department doesn't change the name.
+   *     Then, the description must be updated.
+   *  1. The name is already taken by another department.
+   *     In this case it will be a failure.
+   *
+   * @param departments The department table
+   * @param names       The department name table
+   * @param division    The previous department
+   * @param name        The name
+   * @param dep         New department
+   * @return Affected departments.
+   */
+  private[dao] def updateDivisionAndName(departments: AsyncTable,
+                                         names: AsyncTable,
+                                         division: Result,
+                                         name: Result,
+                                         dep: Department[UUID]): Future[Option[Affected]] = {
 
+    val nameId = Option(name.value).map(UUID(_))
 
-    val noEffect = unaffected.some.pure[Future]
+    val divisionId = UUID(division.getRow)
 
-    if (division.isEmpty) noEffect else {
+    nameId.fold(updateDepartment(departments, names, dep)) {
 
+      case id if divisionId == id => updateDescription(departments, dep)
 
-      Option(name.value).fold {
-
-        for {
-          _ <- deleteById(dep.id.get)
-          _ <- createDivisionForFreeName(departments, names, dep)
-        } yield one.some
-
-      } { id =>
-
-        if (UUID(division.getRow) == UUID(id)) updateDescription(departments, dep)
-        else Future.failed(DepartmentNameIsAlreadyTaken(byteArrayToString(name.getRow)))
-      }
+      case _ => Future.failed(DepartmentNameIsAlreadyTaken(dep.name))
 
     }
-
   }
 
+  private[dao] def updateIfDepartmentExists(departments: AsyncTable,
+                                            names: AsyncTable,
+                                            division: Result,
+                                            name: Result,
+                                            dep: Department[UUID]): Future[Option[Affected]] =
+    if (division.isEmpty) unaffected.some.pure[Future] else updateDivisionAndName(departments, names, division, name, dep)
+
+
+  /**
+   * Updates an existing department.
+   *
+   * You must provide a UUID, otherwise changes will not take effect.
+   *
+   * When updating the department be careful not to use existing names, it will cause failure.
+   *
+   * @param dep Department
+   * @return Affected departments
+   */
   override def update(dep: Department[UUID]): Future[Option[Affected]] = usingBothTables { case (departments, names) =>
 
     dep.id.fold(none[Affected].pure[Future]) { id =>
 
-      val v = for {
-        division <- departments.get(createGet(id.byteArray)).asScala
-        name <- names.get(createGet(toBytes(dep.name))).asScala
-      } yield updateDivisionForFreeName(departments, names, division, name, dep)
+      val department = departments.get(createGet(id.byteArray)).asScala
+      val naming = names.get(createGet(toBytes(dep.name))).asScala
 
-      v.flatten
+      val updated = for {
+        division <- department
+        name <- naming
+      } yield updateIfDepartmentExists(departments, names, division, name, dep)
+
+      updated.flatten
     }
 
   }
@@ -228,16 +256,26 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
       val currentTime = System.currentTimeMillis()
 
-      val divisionNameBytes = division.getValue(dpBytes, nameBytes)
+      val deleteDivision = createDelete(division.getRow, currentTime)
 
-      val dropDivision = retries(() => departments.delete(new Delete(division.getRow).setTimestamp(currentTime)).asScala)
+      def dropDivision = departments.delete(deleteDivision).asScala
 
-      val dropName = retries(() => names.delete(new Delete(divisionNameBytes).setTimestamp(currentTime)).asScala)
+      val deleteName = createDelete(division.getValue(dpBytes, nameBytes), currentTime)
 
-      dropDivision.zip(dropName).map(_ => one)
+      def dropName = names.delete(deleteName).asScala
+
+      retries(dropDivision _).zip(retries(dropName _)).map(_ => one)
     }
     else Future.successful(unaffected)
 
+  /**
+   * Drops the department by its UUID.
+   *
+   * Tries to continuously reapply the deletion until it takes effect.
+   *
+   * @param id UUID
+   * @return Affected departments
+   */
   override def deleteById(id: UUID): Future[Affected] = usingBothTables { case (departments, names) =>
 
     val drop = for {

@@ -79,6 +79,8 @@ object Util {
   def createPutForDesc(division: Department[UUID], currentTime: Long) =
     new Put(division.id.get.byteArray).addColumn(dpBytes, descBytes, currentTime, division.description.getBytes)
 
+  def createDelete(key: ByteArray, currentTime: Long) = new Delete(key).setTimestamp(currentTime)
+
 
   // Previously, I included name and surname in the primary key.
   // But in fact, they were redundant.
@@ -160,50 +162,9 @@ object Util {
 
   val one: Affected = 1
 
-  def retries[T](op: () => Future[T])
-                (implicit ec: ExecutionContext, scheduler: Scheduler): Future[T] =
-    retry(op,
-      attempts = 1024,
-      minBackoff = 1.second,
-      maxBackoff = 24.hours,
-      randomFactor = 0.005)
+  def retries[T](op: () => Future[T])(implicit ec: ExecutionContext, scheduler: Scheduler): Future[T] =
+    retry(op, attempts = 1024, minBackoff = 1.second, maxBackoff = 24.hours, randomFactor = 0.005)
 
-  /**
-   * Attempts to roll back an event.
-   *
-   * You should run this method in the background to avoid blocking the client.
-   *
-   * This method will delete the event only if:
-   *  1. The event with this key exists
-   *  1. The timestamp of the event and the provided timestamp match
-   *
-   * This method will never delete an older versions of the event or its never versions (even if
-   * the tombstone comes later, its timestamp will be too old to take effect).
-   *
-   * In case Play crashes, the database will be left in an inconsistent state.
-   *
-   * @param table     Affected table.
-   * @param key       Affected key.
-   * @param timestamp The key's timestamp.
-   * @param ec        Execution context.
-   * @param scheduler Akka's scheduler.
-   * @return A failed future containing the initial cause of the failure.
-   */
-  // I can create a mock AsyncTable, which fails first time, and then calls the real one.
-  def rollbackByKey(table: AsyncTable, key: ByteArray, timestamp: Long)
-                   (implicit ec: ExecutionContext, scheduler: Scheduler): Future[CheckAndMutateResult] = {
 
-    val drop = new Delete(key).setTimestamp(timestamp + oneMillisecond)
-
-    val checkTimeAndDrop =
-      CheckAndMutate
-        .newBuilder(key)
-        .ifMatches(new KeyOnlyFilter())
-        .timeRange(TimeRange.at(timestamp))
-        .build(drop)
-
-    // It is a great use case for circuit breaker.
-    retries(() => table.checkAndMutate(checkTimeAndDrop).asScala)
-  }
 
 }
