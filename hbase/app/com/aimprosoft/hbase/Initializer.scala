@@ -27,14 +27,14 @@ class Initializer @Inject()() {
     // 'department_id':'name' -> 'description'
 
     if (!tableExists(depTableName))
-      createTable(createTableDescriptor(depTableName, dpBytes))
+      createTable(createTableDescriptor(depTableName, departmentBytes))
     // 'name':'department_id'
     if (!tableExists(depNameTableName))
-      createTable(createTableDescriptor(depNameTableName, dpBytes))
+      createTable(createTableDescriptor(depNameTableName, departmentBytes))
 
     // I can revert failed transaction by keeping time correctly.
     if (!tableExists(empTableName))
-      createTable(createTableDescriptor(empTableName, emBytes))
+      createTable(createTableDescriptor(empTableName, employeeBytes))
 
     // HBase does not support clustering keys, so I need to stick to a special pattern.
     // Because HBase stores everything together,
@@ -42,7 +42,7 @@ class Initializer @Inject()() {
     // I could move 'id' to column qualifiers, but it may degrade performance.
     // Also, I have com
     if (!tableExists(empByDepTableName))
-      createTable(createTableDescriptor(empByDepTableName, emBytes))
+      createTable(createTableDescriptor(empByDepTableName, employeeBytes))
 
     connection.close()
   }

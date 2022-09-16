@@ -6,7 +6,7 @@ import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.hbase.AsyncConnectionLifecycle
 import com.aimprosoft.hbase.Util._
 import com.aimprosoft.model.{Affected, Department}
-import com.aimprosoft.util.DepException.DepartmentNameIsAlreadyTaken
+import com.aimprosoft.util.DepException.{DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
 import com.google.inject.Inject
 import io.jvm.uuid._
 import org.apache.hadoop.hbase.client.{Result, Scan}
@@ -22,16 +22,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
   private[this] implicit val scheduler: Scheduler = system.scheduler
 
-  private[dao] def usingBothTables[T](calc: ((AsyncTable, AsyncTable)) => Future[T]): Future[T] = {
-
-    val res = for {
-      dep <- connectionLifecycle.departments
-      name <- connectionLifecycle.names
-    } yield calc((dep, name))
-
-    res.flatten
-  }
-
+  import connectionLifecycle.usingTables
 
   /**
    * Creates the department and rolls back any changes in case of failure.
@@ -109,7 +100,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
   Both approaches have a window of inconsistent state, but the approach where I reapply mutations does not suffer
   from these drawbacks and is generally easier.
    */
-  override def create(division: Department[UUID]): Future[Option[UUID]] = usingBothTables { case (departments, names) =>
+  override def create(division: Department[UUID]): Future[Option[UUID]] = usingTables { case (departments, names, _, _) =>
 
     division.id.fold {
 
@@ -127,7 +118,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    *
    * @param departments The department table
    * @param dep         The department
-   * @return It is always 1
+   * @return Always 1
    */
   private[dao] def updateDescription(departments: AsyncTable, dep: Department[UUID]): Future[Option[Affected]] = {
 
@@ -150,7 +141,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    * @param departments The department table
    * @param names       The department name table
    * @param dep         The department
-   * @return Affected departments
+   * @return Always 1
    */
   private[dao] def updateDepartment(departments: AsyncTable,
                                     names: AsyncTable,
@@ -177,7 +168,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    * @param division    The previous department
    * @param name        The name
    * @param dep         New department
-   * @return Affected departments.
+   * @return Affected departments
    */
   private[dao] def updateDivisionAndName(departments: AsyncTable,
                                          names: AsyncTable,
@@ -216,7 +207,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    * @param dep Department
    * @return Affected departments
    */
-  override def update(dep: Department[UUID]): Future[Option[Affected]] = usingBothTables { case (departments, names) =>
+  override def update(dep: Department[UUID]): Future[Option[Affected]] = usingTables { case (departments, names, _, _) =>
 
     dep.id.fold(none[Affected].pure[Future]) { id =>
 
@@ -233,7 +224,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
   }
 
-  override def readAll(): Future[Seq[Department[UUID]]] = usingBothTables { case (departments, _) =>
+  override def readAll(): Future[Seq[Department[UUID]]] = usingTables { case (departments, _, _, _) =>
 
     for {
       divisions <- departments.scanAll(new Scan()).asScala
@@ -243,7 +234,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
   }
 
-  override def readById(id: UUID): Future[Option[Department[UUID]]] = usingBothTables { case (departments, _) =>
+  override def readById(id: UUID): Future[Option[Department[UUID]]] = usingTables { case (departments, _, _, _) =>
 
     for {
       division <- departments.get(createGet(id.byteArray)).asScala
@@ -260,7 +251,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
       def dropDivision = departments.delete(deleteDivision).asScala
 
-      val deleteName = createDelete(division.getValue(dpBytes, nameBytes), currentTime)
+      val deleteName = createDelete(division.getValue(departmentBytes, nameBytes), currentTime)
 
       def dropName = names.delete(deleteName).asScala
 
@@ -276,13 +267,15 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    * @param id UUID
    * @return Affected departments
    */
-  override def deleteById(id: UUID): Future[Affected] = usingBothTables { case (departments, names) =>
+  override def deleteById(id: UUID): Future[Affected] = usingTables { case (departments, names, _, employeesByDep) =>
 
-    val drop = for {
-      division <- departments.get(createGet(id.byteArray)).asScala
-    } yield deleteAndRetry(departments, names, division)
+    val department = departments.get(createGet(id.byteArray)).asScala
 
-    drop.flatten
+    val worker = employeesByDep.getScanner(createPrefixScan(id.byteArray).setOneRowLimit()).asScala
+
+    if (worker.isEmpty) department.flatMap(division => deleteAndRetry(departments, names, division))
+    else Future.failed(DepartmentIsNotEmpty(id))
+
   }
 
 }

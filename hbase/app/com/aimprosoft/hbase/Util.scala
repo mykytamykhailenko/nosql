@@ -1,33 +1,46 @@
 package com.aimprosoft.hbase
 
 import akka.actor.Scheduler
-import akka.dispatch.Dispatcher
 import akka.pattern.retry
 import com.aimprosoft.model.{Affected, Department, Employee}
 import io.jvm.uuid._
 import org.apache.hadoop.hbase.Cell.Type
 import org.apache.hadoop.hbase.CellBuilderType.SHALLOW_COPY
-import org.apache.hadoop.hbase.client.{AdvancedScanResultConsumer, CheckAndMutate, CheckAndMutateResult, Delete, Get, Put, Result, Scan, AsyncTable => HBaseAsyncTable}
-import org.apache.hadoop.hbase.filter.KeyOnlyFilter
-import org.apache.hadoop.hbase.io.TimeRange
+import org.apache.hadoop.hbase.client.{AdvancedScanResultConsumer, Delete, Get, Put, Result, Scan, AsyncTable => HBaseAsyncTable}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.hadoop.hbase.util.Bytes.toBytes
 import org.apache.hadoop.hbase.{Cell, CellBuilderFactory, TableName}
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.FutureConverters.CompletionStageOps
 
 object Util {
 
   type ByteArray = Array[Byte]
 
-  type ToByteArray[M] = M => ByteArray
+  val depTableName: TableName = TableName.valueOf("department")
 
-  val byteBufferSize = 98
+  val depNameTableName: TableName = TableName.valueOf("department_name")
+
+  val empTableName: TableName = TableName.valueOf("employee")
+
+  val empByDepTableName: TableName = TableName.valueOf("employee_by_department_id")
+
+  val departmentBytes: ByteArray = Bytes.toBytes("dp")
+
+  val employeeBytes: ByteArray = Bytes.toBytes("em")
+
+  val nameBytes: ByteArray = Bytes.toBytes("name")
+
+  val surnameBytes: ByteArray = Bytes.toBytes("sn")
+
+  val descBytes: ByteArray = Bytes.toBytes("desc")
+
+  val uuidBytes: ByteArray = Bytes.toBytes("uuid")
+
 
   /*
   'department_name' -> 128
@@ -49,13 +62,21 @@ object Util {
 
   def byteArrayToString(value: ByteArray) = new String(value, StandardCharsets.UTF_8)
 
-  val nameBytes: Array[Byte] = Bytes.toBytes("name")
-  val descBytes: Array[Byte] = Bytes.toBytes("desc")
-  val uuidBytes: Array[Byte] = Bytes.toBytes("uuid")
 
+  def resultToEmployee(data: Result): Employee[UUID] = {
+    val qualifiers = data.getFamilyMap(employeeBytes).asScala.map { case (qualifier, value) =>
+      byteArrayToString(qualifier) -> byteArrayToString(value)
+    }
+
+    Employee(
+      Some(UUID(data.getRow)),
+      UUID(data.getValue(employeeBytes, departmentBytes)),
+      qualifiers("name"),
+      qualifiers("sn"))
+  }
 
   def resultToDepartment(data: Result) = {
-    val qualifiers = data.getFamilyMap(dpBytes).asScala.map { case (qualifier, value) =>
+    val qualifiers = data.getFamilyMap(departmentBytes).asScala.map { case (qualifier, value) =>
       byteArrayToString(qualifier) -> byteArrayToString(value)
     }
 
@@ -68,18 +89,26 @@ object Util {
 
   def createPutForDepartment(division: Department[UUID], currentTime: Long) =
 
-    createPut(division.id.get.byteArray, dpBytes, currentTime, Map(
+    createPut(division.id.get.byteArray, departmentBytes, currentTime, Map(
       nameBytes -> toBytes(division.name),
       descBytes -> toBytes(division.description)
     ))
 
   def createPutForName(division: Department[UUID], currentTime: Long) =
-    createPut(toBytes(division.name), dpBytes, currentTime, Map(uuidBytes -> division.id.get.byteArray))
+    createPut(toBytes(division.name), departmentBytes, currentTime, Map(uuidBytes -> division.id.get.byteArray))
 
   def createPutForDesc(division: Department[UUID], currentTime: Long) =
-    new Put(division.id.get.byteArray).addColumn(dpBytes, descBytes, currentTime, division.description.getBytes)
+    new Put(division.id.get.byteArray).addColumn(departmentBytes, descBytes, currentTime, division.description.getBytes)
 
   def createDelete(key: ByteArray, currentTime: Long) = new Delete(key).setTimestamp(currentTime)
+
+  def createPut(employee: Employee[UUID], currentTime: Long): Put =
+    createPut(employee.id.get.byteArray, employeeBytes, currentTime, Map(
+      nameBytes -> toBytes(employee.name),
+      surnameBytes -> toBytes(employee.surname),
+      departmentBytes -> employee.departmentId.byteArray,
+    ))
+
 
 
   // Previously, I included name and surname in the primary key.
@@ -101,31 +130,38 @@ object Util {
   }
 
 
+  // 1. I could store UUIDs as string, but they take up a lot of space.
+  // Sparse keys save up 32 bytes.
+  // Such key design should work relatively quickly
+  //
+  //
+  //
   // 'department_id''surname''name''employee_id' -> 'em:'''
-  def buildEmpByDepKeyAsByteArray(v: Employee[UUID]): ByteArray = v match {
+  def createEmployeeWideKey(v: Employee[UUID]): ByteArray = v match {
     case Employee(Some(em), dp, name, surname) =>
       ByteBuffer.allocate(96)
-        .put(dp.byteArray, 0, 16)
-        .put(Bytes.toBytes(surname), 16, 32)
-        .put(Bytes.toBytes(name), 48, 32)
-        .put(em.byteArray, 80, 16)
+        .put(dp.byteArray)
+        .position(16)
+        .put(Bytes.toBytes(surname))
+        .position(48)
+        .put(Bytes.toBytes(name))
+        .position(80)
+        .put(em.byteArray)
         .array()
   }
 
-  val depTableName: TableName = TableName.valueOf("department")
+  def buildEmployeeFromWideKey(wideKey: ByteArray): Employee[UUID] = {
 
-  val depNameTableName: TableName = TableName.valueOf("department_name")
+    val employeeId = UUID(wideKey.slice(80, 96))
 
-  val empTableName: TableName = TableName.valueOf("employee")
+    val departmentId = UUID(wideKey.slice(0, 16))
 
-  val empByDepTableName: TableName = TableName.valueOf("employee_by_department_id")
+    val surname = byteArrayToString(wideKey.slice(16, 48)).trim
 
+    val name = byteArrayToString(wideKey.slice(48, 80)).trim
 
-  val dpBytes: ByteArray = Bytes.toBytes("dp")
-
-  val emBytes: ByteArray = Bytes.toBytes("em")
-
-  val uuidColumnBytes: ByteArray = Bytes.toBytes("uuid")
+    Employee(Some(employeeId), departmentId, name, surname)
+  }
 
   // This version of Put doesn't store any values.
   // I have a use-case where all my data is stored in the key.
@@ -149,14 +185,12 @@ object Util {
       put.addColumn(family, column, timestamp, value)
     }
 
+  def createPrefixScan(prefix: ByteArray) = new Scan().setRowPrefixFilter(prefix)
+
 
   def createGet(key: ByteArray): Get = new Get(key)
 
-  def createScanPrefix(key: ByteArray): Scan = new Scan().setRowPrefixFilter(key).setOneRowLimit()
-
   type AsyncTable = HBaseAsyncTable[AdvancedScanResultConsumer]
-
-  val oneMillisecond = 1
 
   val unaffected: Affected = 0
 
