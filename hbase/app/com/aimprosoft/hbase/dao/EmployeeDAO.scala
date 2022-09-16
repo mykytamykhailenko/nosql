@@ -91,6 +91,7 @@ class EmployeeDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, syste
 
   }
 
+  // Another method, which requires a lot of thinking.
   override def update(employee: Employee[UUID]): Future[Option[Affected]] = ???
 
   override def readAll(): Future[Seq[Employee[UUID]]] = usingTables { case (_, _, employees, _) =>
@@ -103,8 +104,50 @@ class EmployeeDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, syste
 
   }
 
-  override def readById(id: UUID): Future[Option[Employee[UUID]]] = ???
+  override def readById(id: UUID): Future[Option[Employee[UUID]]] = usingTables { case (_, _, employees, _) =>
 
-  override def deleteById(id: UUID): Future[Affected] = ???
+    for {
+      worker <- employees.get(createGet(id.byteArray)).asScala //
+    } yield if (worker.isEmpty) None else Some(resultToEmployee(worker))
+
+  }
+
+  private[dao] def deleteEmployeeOrReapply(employees: AsyncTable,
+                                           employeesByDep: AsyncTable,
+                                           employee: Employee[UUID]): Future[Affected] = {
+
+    val currentTime = System.currentTimeMillis()
+
+    val dropEmployee = createDelete(employee.id.get.byteArray, currentTime)
+
+    def deleteEmployee = employees.delete(dropEmployee).asScala
+
+    val dropEmployeesByDep = createDelete(createEmployeeWideKey(employee), currentTime)
+
+    def deleteEmployeeByDep = employeesByDep.delete(dropEmployeesByDep).asScala
+
+    retries(deleteEmployee _).zip(retries(deleteEmployeeByDep _)).map(_ => one)
+  }
+
+  /**
+   * Deletes an employee by his UUID.
+   *
+   * It can reapply the deletion, but it will always keep the same timestamp.
+   *
+   * Removes the employee from both ''employee'' and ''employee_by_department_id''.
+   *
+   * @param id The employee's UUID
+   * @return Affected employees
+   */
+  override def deleteById(id: UUID): Future[Affected] = usingTables { case (_, _, employees, employeesByDep) =>
+
+    val noEffect = unaffected.pure[Future] // I need to hide it somewhere
+
+    val deletion = for {
+      worker <- readById(id)
+    } yield worker.fold(noEffect)(emp => deleteEmployeeOrReapply(employees, employeesByDep, emp))
+
+    deletion.flatten
+  }
 
 }
