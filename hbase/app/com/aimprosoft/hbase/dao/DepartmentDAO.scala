@@ -1,147 +1,250 @@
 package com.aimprosoft.hbase.dao
 
-import akka.actor.Scheduler
-import akka.dispatch.Dispatcher
+import akka.actor.{ActorSystem, Scheduler}
 import cats.implicits.{catsStdInstancesForFuture, catsSyntaxApplicativeId, catsSyntaxOptionId, none}
 import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.hbase.AsyncConnectionLifecycle
 import com.aimprosoft.hbase.Util._
 import com.aimprosoft.model.{Affected, Department}
+import com.aimprosoft.util.DepException.DepartmentNameIsAlreadyTaken
 import com.google.inject.Inject
-import io.jvm.uuid.StaticUUID.random
 import io.jvm.uuid._
-import org.apache.hadoop.hbase.TableName.{valueOf => tableName}
-import org.apache.hadoop.hbase.client.{AdvancedScanResultConsumer, AsyncConnection, Connection, Delete, Get, Table}
-import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.client.{AsyncConnection, Delete, Result, Scan}
+import org.apache.hadoop.hbase.util.Bytes.toBytes
 
 import javax.inject.Singleton
-import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
-import scala.jdk.FutureConverters.CompletionStageOps
-import akka.pattern.retry
-import com.aimprosoft.util.DepException.DepartmentNameIsAlreadyTaken
-
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.FutureConverters.CompletionStageOps
 
 @Singleton
-class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle)(implicit dispatcher: Dispatcher, scheduler: Scheduler) extends BasicDAO[Future, UUID, Department[UUID]] {
+class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, system: ActorSystem)(implicit ec: ExecutionContext) extends BasicDAO[Future, UUID, Department[UUID]] {
 
-  private[dao] val connection: Future[AsyncConnection] = connectionLifecycle.connection
+  private[this] implicit val scheduler: Scheduler = system.scheduler
 
-  private[dao] val departments = connection.map(_.getTable(depTableName))
-
-  private[dao] val departmentNames = connection.map(_.getTable(depNameTableName))
+  import connectionLifecycle._
 
   private[dao] def usingBothTables[T](calc: ((AsyncTable, AsyncTable)) => Future[T]): Future[T] = {
     val res = for {
       dep <- departments
-      name <- departmentNames
+      name <- names
     } yield calc((dep, name))
 
     res.flatten
   }
 
-  private[dao] def createDivisionForBytes(departments: AsyncTable,
-                                          names: AsyncTable,
-                                          divisionKeyBytes: ByteArray,
-                                          divisionNameBytes: ByteArray,
-                                          divisionIdBytes: ByteArray) = {
 
-    val millis = System.currentTimeMillis() // Capture time for proper rollbacks.
+  /**
+   * Creates the department and rolls back any changes in case of failure.
+   *
+   * The creation of the department entails:
+   *  1. Insertion into ''department''
+   *  1. Insertion into ''department_name''
+   *
+   * This method does not check the department's name uniqueness, so be careful.
+   *
+   * This method can reapply failed insertions:
+   *  1. It captures the time of the insertion
+   *  1. It tries to insert the department
+   *  1. If either ''department'' or ''department_name'' fail, it tries to reapply changes using the captured time.
+   *
+   * @param departments The departments table
+   * @param names       The names table
+   * @param division    The department
+   * @return The department's UUID
+   */
+  private[dao] def createDivisionOrReapply(departments: AsyncTable, names: AsyncTable, division: Department[UUID]): Future[Option[UUID]] = {
 
-    val putDepRequest = createEmptyPut(divisionKeyBytes, depFamilyBytes, millis)
-    val putNameRequest = createPut(divisionNameBytes, depFamilyBytes, millis, divisionIdBytes)
+    val currentTime = System.currentTimeMillis() // Capture time for proper rollbacks.
 
-    val putDiv = departments.put(putDepRequest).asScala.recoverWith { error =>
-      rollbackByKey(departments, divisionKeyBytes, millis, error)
-      Future.failed(error) // Both actions must be reverted at the same time.
-    }
+    val putDep = createPutForDepartment(division, currentTime)
 
-    val putName = names.put(putNameRequest).asScala.recoverWith { error =>
-      rollbackByKey(names, divisionNameBytes, millis, error)
-      Future.failed(error)
-    }
+    val putName = createPutForName(division, currentTime)
 
-    putDiv.zip(putName)
+    def createDep = departments.put(putDep).asScala
+
+    val createDepAndReapply = createDep.recoverWith(_ => retries(createDep _))
+
+    def createName = names.put(putName).asScala
+
+    val createNameAndReapply = createName.recoverWith(_ => retries(createName _))
+
+    createDepAndReapply.zip(createNameAndReapply).map(_ => division.id)
   }
 
-  private[dao] def prepareAndCreateDivision(departments: AsyncTable, names: AsyncTable, division: Department[UUID]): Future[Option[UUID]] = {
-
-    val id = UUID.random
-
-    val divisionWithId = division.copy(id = id.some)
-
-    val divisionKeyBytes = buildDivisionKeyAsByteArray(divisionWithId)
-    val divisionNameBytes = getDivisionNameBytes(divisionWithId)
-
-    createDivisionForBytes(departments, names, divisionKeyBytes, divisionNameBytes, id.byteArray).map(_ => id.some)
-  }
-
-  private[dao] def createDivisionForFreeName(departments: AsyncTable, names: AsyncTable, division: Department[UUID]): Future[Option[UUID]] = {
+  /**
+   * Creates the department if its name is unique.
+   *
+   * @param departments The department table
+   * @param names       The department name table
+   * @param division    The department
+   * @return The department's UUID
+   */
+  private[dao] def createDivision(departments: AsyncTable, names: AsyncTable, division: Department[UUID]): Future[Option[UUID]] = {
 
     val creation = for {
-      occupied <- names.exists(createGet(getDivisionNameBytes(division))).asScala
+      occupied <- names.exists(createGet(toBytes(division.name))).asScala
     } yield if (occupied) Future.failed(DepartmentNameIsAlreadyTaken(division.name))
-    else prepareAndCreateDivision(departments, names, division)
+    else createDivisionOrReapply(departments, names, division)
 
     creation.flatten
   }
 
 
   /**
+   * Creates a department with unique name and returns its UUID.
    *
-   * I can encounter following hurdles:
-   *  1. The department has been created, but the name was not listed in ''department_name''.
-   *     In this case I shall retry deleting the department from ''department'' while keeping the version of the tombstone slightly (+1) higher.
-   *     This way the tombstone will never erase records, which come later.
-   *  1. The department was not created at all.
+   * The department must not contain the UUID, it will be created for you.
+   * This method won't create the department if it has the UUID.
    *
-   * I think it is not worth it reverting the second operation.
-   * Because if it was not applied,
+   * If the department's name is duplicate, this method will break.
    *
+   * This method can reapply failed transactions.
    *
-   * I should revert them in reverse order.
-   * Though, I think it doesn't matter.
-   * Because you either:
-   *  1. You see a department, and can create another one with the same name.
-   *  1. You don't see a department, but you cannot use its name.
-   *     I think the latter is worse.
-   *
-   *
-   * I think the best strategy for retries is to check if such record exists, and then cancel it.
-   *
-   *
-   * Also, I assume the same record won't be queried at the same time (millisecond).
-   *
-   *
-   * When creating the department I must consider occupied names.
-   *
-   * How the rollback works:
-   * Given a key, I shall check whether the object has been inserted successfully, and if yes, revert it.
-   * Also, I will propagate error to avoid collisions.
-   *
-   * @param dep
-   * @return
+   * @param division The department.
+   * @return The department's UUID
    */
-  // Checks if the department has an id. If does, does not create it.
-  def create(division: Department[UUID]): Future[Option[UUID]] = usingBothTables { case (departments, names) =>
+  /*
+  Previously, I tried to roll back fail transactions, but this approach had a few flaws:
+  1) I could not roll back tombstones when I needed to drop a few records at a time.
+     I only could reapply them until they take effect.
+  2) I had to ensure that all actions are rolled back at the same time.
+     Sometimes, it is not possible.
 
-    division.id.fold(createDivisionForFreeName(departments, names, division))(_ => none[UUID].pure[Future])
+  Both approaches have a window of inconsistent state, but the approach where I reapply mutations does not suffer
+  from these drawbacks and is generally easier.
+   */
+  override def create(division: Department[UUID]): Future[Option[UUID]] = usingBothTables { case (departments, names) =>
+
+    division.id.fold {
+
+      createDivision(departments, names, division.copy(id = UUID.random.some))
+
+    }(_ => none[UUID].pure[Future])
 
   }
 
-  override def update(value: Department[UUID]): Future[Option[Affected]] = ???
+  /**
+   * This method is used to update the department's description only.
+   *
+   * This method can roll back the update in case of failure.
+   *
+   * @param departments The department table
+   * @param dep         The department
+   * @return Always Some(1)
+   */
+  private[dao] def updateDescription(departments: AsyncTable, dep: Department[UUID]): Future[Option[Affected]] = {
 
-  override def readAll(): Future[Seq[Department[UUID]]] = ???
+    val currentTime = System.currentTimeMillis()
+
+    val put = createPutForDesc(dep, currentTime)
+
+    departments
+      .put(put)
+      .asScala
+      .recoverWith(_ => rollbackByKey(departments, put.getRow, currentTime))
+      .map(_ => one.some)
+  }
+
+  private[dao] def foo(departments: AsyncTable, dep: Department[UUID]): Future[Option[Affected]] = {
+
+    val currentTime = System.currentTimeMillis()
+
+    val putDep = createPut(dep.id.get.byteArray, dpBytes, currentTime, Map(
+      nameBytes -> toBytes(dep.name),
+      descBytes -> toBytes(dep.description)
+    ))
+
+    departments
+      .put(putDep)
+      .asScala
+      .recoverWith(_ => rollbackByKey(departments, putDep.getRow, currentTime))
+      .map(_ => one.some)
+  }
+
+  private[dao] def updateDivisionForFreeName(departments: AsyncTable,
+                                             names: AsyncTable,
+                                             division: Result,
+                                             name: Result,
+                                             dep: Department[UUID]): Future[Option[Affected]] = {
+
+
+    val noEffect = unaffected.some.pure[Future]
+
+    if (division.isEmpty) noEffect else {
+
+
+      Option(name.value).fold {
+
+        for {
+          _ <- deleteById(dep.id.get)
+          _ <- createDivisionForFreeName(departments, names, dep)
+        } yield one.some
+
+      } { id =>
+
+        if (UUID(division.getRow) == UUID(id)) updateDescription(departments, dep)
+        else Future.failed(DepartmentNameIsAlreadyTaken(byteArrayToString(name.getRow)))
+      }
+
+    }
+
+  }
+
+  override def update(dep: Department[UUID]): Future[Option[Affected]] = usingBothTables { case (departments, names) =>
+
+    dep.id.fold(none[Affected].pure[Future]) { id =>
+
+      val v = for {
+        division <- departments.get(createGet(id.byteArray)).asScala
+        name <- names.get(createGet(toBytes(dep.name))).asScala
+      } yield updateDivisionForFreeName(departments, names, division, name, dep)
+
+      v.flatten
+    }
+
+  }
+
+  override def readAll(): Future[Seq[Department[UUID]]] = usingBothTables { case (departments, _) =>
+
+    for {
+      divisions <- departments.scanAll(new Scan()).asScala
+    } yield for {
+      div <- divisions.asScala.toSeq
+    } yield resultToDepartment(div)
+
+  }
 
   override def readById(id: UUID): Future[Option[Department[UUID]]] = usingBothTables { case (departments, _) =>
 
-    val division = departments.getScanner(createScanPrefix(id.byteArray)).asScala.headOption
-
-    division.map(_.getRow)
+    for {
+      division <- departments.get(createGet(id.byteArray)).asScala
+    } yield if (!division.isEmpty) resultToDepartment(division).some else None
 
   }
 
-  override def deleteById(id: UUID): Future[Affected] = ???
+  private[dao] def deleteAndRetry(departments: AsyncTable, names: AsyncTable, division: Result) =
+    if (!division.isEmpty) {
+
+      val currentTime = System.currentTimeMillis()
+
+      val divisionNameBytes = division.getValue(dpBytes, nameBytes)
+
+      val dropDivision = retries(() => departments.delete(new Delete(division.getRow).setTimestamp(currentTime)).asScala)
+
+      val dropName = retries(() => names.delete(new Delete(divisionNameBytes).setTimestamp(currentTime)).asScala)
+
+      dropDivision.zip(dropName).map(_ => one)
+    }
+    else Future.successful(unaffected)
+
+  override def deleteById(id: UUID): Future[Affected] = usingBothTables { case (departments, names) =>
+
+    val drop = for {
+      division <- departments.get(createGet(id.byteArray)).asScala
+    } yield deleteAndRetry(departments, names, division)
+
+    drop.flatten
+  }
 
 }

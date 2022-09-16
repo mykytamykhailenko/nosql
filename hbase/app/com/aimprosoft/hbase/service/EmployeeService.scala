@@ -7,8 +7,8 @@ import com.aimprosoft.hbase.dao.TEmployeeDAO
 import com.aimprosoft.model.{Affected, CompleteEmployee, Department, Employee}
 import com.aimprosoft.service.TEmployeeService
 import com.google.inject.Inject
-import com.outworkers.phantom.dsl.UUID
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 case class EmployeeService @Inject()(employees: TEmployeeDAO, departments: BasicDAO[Future, UUID, Department[UUID]])(implicit ec: ExecutionContext) extends TEmployeeService[Future, UUID] {

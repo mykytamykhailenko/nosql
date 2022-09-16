@@ -1,15 +1,15 @@
 package com.aimprosoft.hbase.controller
 
-import com.aimprosoft.controllers.EmployeeController
+import com.aimprosoft.controllers.DepartmentController
 import com.aimprosoft.mat.Materializer
-import com.aimprosoft.service.TEmployeeService
+import com.aimprosoft.service.TDepartmentService
 import com.google.inject.Inject
 import play.api.mvc.ControllerComponents
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class PhantomEmployeeController @Inject()(departmentService: TEmployeeService[Future, UUID],
+class HBaseDepartmentController @Inject()(departmentService: TDepartmentService[Future, UUID],
                                           controllerComponents: ControllerComponents)
                                          (implicit mat: Materializer[Future], ec: ExecutionContext) extends
-  EmployeeController[Future, UUID](departmentService, controllerComponents)
+  DepartmentController[Future, UUID](departmentService, controllerComponents)

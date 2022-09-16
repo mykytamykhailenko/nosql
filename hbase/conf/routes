@@ -6,20 +6,20 @@
 # An example controller showing a sample home page
 GET             /health                         com.aimprosoft.controllers.HealthcheckController.healthCheck()
 
-GET             /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.readAll()
-GET             /departments/:id                 com.aimprosoft.phantom.controller.PhantomDepartmentController.readById(id: UUID)
-GET             /departments/:id/employees       com.aimprosoft.phantom.controller.PhantomEmployeeController.getEmployeesByDepartmentId(id: UUID)
-POST            /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.create()
-PUT             /departments                     com.aimprosoft.phantom.controller.PhantomDepartmentController.update()
-DELETE          /departments/:id                 com.aimprosoft.phantom.controller.PhantomDepartmentController.deleteById(id: UUID)
+GET             /departments                     com.aimprosoft.hbase.controller.HBaseDepartmentController.readAll()
+GET             /departments/:id                 com.aimprosoft.hbase.controller.HBaseDepartmentController.readById(id: UUID)
+GET             /departments/:id/employees       com.aimprosoft.hbase.controller.HBaseEmployeeController.getEmployeesByDepartmentId(id: UUID)
+POST            /departments                     com.aimprosoft.hbase.controller.HBaseDepartmentController.create()
+PUT             /departments                     com.aimprosoft.hbase.controller.HBaseDepartmentController.update()
+DELETE          /departments/:id                 com.aimprosoft.hbase.controller.HBaseDepartmentController.deleteById(id: UUID)
 
 
-GET             /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.readAll()
-GET             /employees/:id                   com.aimprosoft.phantom.controller.PhantomEmployeeController.readById(id: UUID)
-GET             /employees/:id/departments       com.aimprosoft.phantom.controller.PhantomEmployeeController.getCompleteEmployeeById(id: UUID)
-POST            /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.create()
-PUT             /employees                       com.aimprosoft.phantom.controller.PhantomEmployeeController.update()
-DELETE          /employees/:id                   com.aimprosoft.phantom.controller.PhantomEmployeeController.deleteById(id: UUID)
+GET             /employees                       com.aimprosoft.hbase.controller.HBaseEmployeeController.readAll()
+GET             /employees/:id                   com.aimprosoft.hbase.controller.HBaseEmployeeController.readById(id: UUID)
+GET             /employees/:id/departments       com.aimprosoft.hbase.controller.HBaseEmployeeController.getCompleteEmployeeById(id: UUID)
+POST            /employees                       com.aimprosoft.hbase.controller.HBaseEmployeeController.create()
+PUT             /employees                       com.aimprosoft.hbase.controller.HBaseEmployeeController.update()
+DELETE          /employees/:id                   com.aimprosoft.hbase.controller.HBaseEmployeeController.deleteById(id: UUID)
 
 
 # Map static resources from the /public folder to the /assets URL path
