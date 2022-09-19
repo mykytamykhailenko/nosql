@@ -251,7 +251,7 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
                                   currentTime: Long = currentTimeMillis()): Future[Affected] =
 
     division.fold(nothingDeleted) { dep =>
-      
+
       val deleteDivision = createDelete(dep.id.get.byteArray, currentTime)
 
       val deleteName = createDelete(toBytes(dep.name), currentTime)
