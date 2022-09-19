@@ -63,7 +63,7 @@ object Util {
   def byteArrayToString(value: ByteArray) = new String(value, StandardCharsets.UTF_8)
 
 
-  def resultToEmployee(data: Result): Employee[UUID] = {
+  def getEmployee(data: Result): Employee[UUID] = {
     val qualifiers = data.getFamilyMap(employeeBytes).asScala.map { case (qualifier, value) =>
       byteArrayToString(qualifier) -> byteArrayToString(value)
     }
@@ -75,7 +75,20 @@ object Util {
       qualifiers("sn"))
   }
 
-  def resultToDepartment(data: Result) = {
+  def getEmployeeOpt(data: Result): Option[Employee[UUID]] = if (data.isEmpty) None
+  else {
+    val qualifiers = data.getFamilyMap(employeeBytes).asScala.map { case (qualifier, value) =>
+      byteArrayToString(qualifier) -> byteArrayToString(value)
+    }
+
+    Some(Employee(
+      Some(UUID(data.getRow)),
+      UUID(data.getValue(employeeBytes, departmentBytes)),
+      qualifiers("name"),
+      qualifiers("sn")))
+  }
+
+  def getDepartment(data: Result) = {
     val qualifiers = data.getFamilyMap(departmentBytes).asScala.map { case (qualifier, value) =>
       byteArrayToString(qualifier) -> byteArrayToString(value)
     }
@@ -84,6 +97,17 @@ object Util {
       Some(UUID(data.getRow)),
       qualifiers("name"),
       qualifiers("desc"))
+  }
+
+  def getDepartmentOpt(data: Result): Option[Department[UUID]] = if (data.isEmpty) None else {
+    val qualifiers = data.getFamilyMap(departmentBytes).asScala.map { case (qualifier, value) =>
+      byteArrayToString(qualifier) -> byteArrayToString(value)
+    }
+
+    Some(Department(
+      Some(UUID(data.getRow)),
+      qualifiers("name"),
+      qualifiers("desc")))
   }
 
 
@@ -192,9 +216,16 @@ object Util {
 
   type AsyncTable = HBaseAsyncTable[AdvancedScanResultConsumer]
 
-  val unaffected: Affected = 0
+
+  val noOne: Affected = 0
 
   val one: Affected = 1
+
+  val aMillisecond = 1
+  val nothingUpdated: Future[Option[Affected]] = Future.successful(Some(noOne))
+
+  val nothingDeleted = Future.successful(noOne)
+
 
   def retries[T](op: () => Future[T])(implicit ec: ExecutionContext, scheduler: Scheduler): Future[T] =
     retry(op, attempts = 1024, minBackoff = 1.second, maxBackoff = 24.hours, randomFactor = 0.005)

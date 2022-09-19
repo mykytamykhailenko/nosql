@@ -9,6 +9,7 @@ import com.aimprosoft.util.DepException.DepartmentDoesNotExist
 import io.jvm.uuid._
 import org.apache.hadoop.hbase.client.Scan
 
+import java.lang.System.currentTimeMillis
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -38,29 +39,30 @@ class EmployeeDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, syste
     Future.successful(workers.toSeq)
   }
 
-  private[dao] def createEmployeeOrReapply(employees: AsyncTable, employeeByDep: AsyncTable, employee: Employee[UUID]): Future[Option[UUID]] = {
-
-    val currentTime = System.currentTimeMillis()
+  private[dao] def createEmployeeAndReapply(employees: AsyncTable,
+                                            employeeByDep: AsyncTable,
+                                            employee: Employee[UUID],
+                                            currentTime: Long = currentTimeMillis()): Future[Option[UUID]] = {
 
     val putEmployee = createPut(employee, currentTime)
 
-    def createEmployee = employees.put(putEmployee).asScala
-
     val putEmployeeWideKey = createEmptyPut(createEmployeeWideKey(employee), employeeBytes, currentTime)
 
-    def createEmployeeByDep = employeeByDep.put(putEmployeeWideKey).asScala
+    val createEmployee = () => employees.put(putEmployee).asScala
 
-    retries(createEmployee _).zip(retries(createEmployeeByDep _)).map(_ => employee.id)
+    val createEmployeeByDep = () => employeeByDep.put(putEmployeeWideKey).asScala
+
+    retries(createEmployee).zip(retries(createEmployeeByDep)).map(_ => employee.id)
   }
 
-  private[dao] def createEmployeeIfDepExists(employees: AsyncTable,
-                                employeeByDep: AsyncTable,
-                                departments: AsyncTable,
-                                employee: Employee[UUID]): Future[Option[UUID]] = {
+  private[dao] def createEmployeeIfDivisionExists(employees: AsyncTable,
+                                                  employeeByDep: AsyncTable,
+                                                  departments: AsyncTable,
+                                                  employee: Employee[UUID]): Future[Option[UUID]] = {
 
     val creation = for {
       depPresent <- departments.exists(createGet(employee.departmentId.byteArray)).asScala
-    } yield if (depPresent) createEmployeeOrReapply(employees, employeeByDep, employee)
+    } yield if (depPresent) createEmployeeAndReapply(employees, employeeByDep, employee)
     else Future.failed(DepartmentDoesNotExist(employee.departmentId))
 
     creation.flatten
@@ -85,48 +87,131 @@ class EmployeeDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, syste
 
     employee.id.fold {
 
-      createEmployeeIfDepExists(employees, employeeByDep, departments, employee.copy(id = UUID.random.some))
+      createEmployeeIfDivisionExists(employees, employeeByDep, departments, employee.copy(id = UUID.random.some))
 
     }(_ => none[UUID].pure[Future])
 
   }
 
-  // Another method, which requires a lot of thinking.
-  override def update(employee: Employee[UUID]): Future[Option[Affected]] = ???
+  /**
+   * Updates an employee by:
+   *  1. Dropping old employee from ''employee_by_department_id''
+   *  1. Inserting new employee in ''employee_by_department_id''
+   *  1. Updating the employee in ''employee''
+   *
+   * This method won't do anything if the contents of the employee stay the same.
+   *
+   * Can reapply changes for eventual consistency.
+   *
+   * @param employees The ''employee'' table
+   * @param employeesByDep The ''employee_by_department_id'' table
+   * @param oldEmployee Old employee
+   * @param employee New employee
+   * @param currentTime Current time
+   * @return Affected employees
+   */
+  def updateEmployeeOrReapply(employees: AsyncTable,
+                              employeesByDep: AsyncTable,
+                              oldEmployee: Employee[UUID],
+                              employee: Employee[UUID],
+                              currentTime: Long = currentTimeMillis()): Future[Option[Affected]] = {
+
+    if (employee == oldEmployee) one.some.pure[Future]
+    else {
+
+      val dropOldEmployeeWideKey = createDelete(createEmployeeWideKey(oldEmployee), currentTime)
+
+      val putEmployeeWideKey = createEmptyPut(createEmployeeWideKey(employee), employeeBytes, currentTime)
+
+      val putEmployee = createPut(employee, currentTime)
+
+      val deleteOldEmployeeByDep = () => employeesByDep.delete(dropOldEmployeeWideKey).asScala
+
+      val createEmployeeByDep = () => employeesByDep.put(putEmployeeWideKey).asScala
+
+      val createEmployee = () => employees.put(putEmployee).asScala
+
+      Future.sequence(Seq(
+        retries(deleteOldEmployeeByDep),
+        retries(createEmployeeByDep),
+        retries(createEmployee)))
+        .map(_ => one.some)
+    }
+  }
+
+  def updateIfDivisionExists(employees: AsyncTable,
+                             employeesByDep: AsyncTable,
+                             oldEmployee: Employee[UUID],
+                             employee: Employee[UUID],
+                             departmentExists: Boolean): Future[Option[Affected]] =
+
+    if (departmentExists) updateEmployeeOrReapply(employees, employeesByDep, oldEmployee, employee)
+    else Future.failed(DepartmentDoesNotExist(employee.departmentId))
+
+  /**
+   * Updates an employee.
+   *
+   * When updating the employee, you must ensure its department id belongs to an existing department.
+   * Otherwise, this method will fail.
+   *
+   * This method will not update anything if the employee does not exist or its content stays the same.
+   *
+   * Can reapply changes to stay consistent.
+   *
+   * @param employee The employee
+   * @return Affected employees
+   */
+  override def update(employee: Employee[UUID]): Future[Option[Affected]] = usingTables { case (departments, _, employees, employeesByDep) =>
+
+    val division = departments.exists(createGet(employee.departmentId.byteArray)).asScala
+
+    val worker = employees.get(createGet(employee.id.get.byteArray)).asScala
+
+    val updated = for {
+      dep <- division
+      workman <- worker
+
+      workmanOpt = getEmployeeOpt(workman)
+
+    } yield workmanOpt.fold(nothingUpdated) { oldEmployee =>
+      updateIfDivisionExists(employees, employeesByDep, oldEmployee, employee, dep)
+    }
+
+    updated.flatten
+  }
 
   override def readAll(): Future[Seq[Employee[UUID]]] = usingTables { case (_, _, employees, _) =>
 
     for {
-      workers <- employees.scanAll(new Scan()).asScala
+      staff <- employees.scanAll(new Scan()).asScala
     } yield for {
-      emp <- workers.asScala.toSeq
-    } yield resultToEmployee(emp)
+      worker <- staff.asScala.toSeq
+    } yield getEmployee(worker)
 
   }
 
   override def readById(id: UUID): Future[Option[Employee[UUID]]] = usingTables { case (_, _, employees, _) =>
 
     for {
-      worker <- employees.get(createGet(id.byteArray)).asScala //
-    } yield if (worker.isEmpty) None else Some(resultToEmployee(worker))
+      worker <- employees.get(createGet(id.byteArray)).asScala
+    } yield getEmployeeOpt(worker)
 
   }
 
   private[dao] def deleteEmployeeOrReapply(employees: AsyncTable,
                                            employeesByDep: AsyncTable,
-                                           employee: Employee[UUID]): Future[Affected] = {
-
-    val currentTime = System.currentTimeMillis()
+                                           employee: Employee[UUID],
+                                           currentTime: Long = currentTimeMillis()): Future[Affected] = {
 
     val dropEmployee = createDelete(employee.id.get.byteArray, currentTime)
 
-    def deleteEmployee = employees.delete(dropEmployee).asScala
-
     val dropEmployeesByDep = createDelete(createEmployeeWideKey(employee), currentTime)
 
-    def deleteEmployeeByDep = employeesByDep.delete(dropEmployeesByDep).asScala
+    val deleteEmployee = () => employees.delete(dropEmployee).asScala
 
-    retries(deleteEmployee _).zip(retries(deleteEmployeeByDep _)).map(_ => one)
+    val deleteEmployeeByDep = () => employeesByDep.delete(dropEmployeesByDep).asScala
+
+    retries(deleteEmployee).zip(retries(deleteEmployeeByDep)).map(_ => one)
   }
 
   /**
@@ -141,11 +226,9 @@ class EmployeeDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, syste
    */
   override def deleteById(id: UUID): Future[Affected] = usingTables { case (_, _, employees, employeesByDep) =>
 
-    val noEffect = unaffected.pure[Future] // I need to hide it somewhere
-
     val deletion = for {
       worker <- readById(id)
-    } yield worker.fold(noEffect)(emp => deleteEmployeeOrReapply(employees, employeesByDep, emp))
+    } yield worker.fold(nothingDeleted)(emp => deleteEmployeeOrReapply(employees, employeesByDep, emp))
 
     deletion.flatten
   }
