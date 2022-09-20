@@ -104,6 +104,7 @@ lazy val hbase = (project in file("hbase"))
       specs2 % Test,
       "io.jvm.uuid" %% "scala-uuid" % "0.3.1",
       "org.mockito" % "mockito-core" % "4.8.0" % Test,
+      "org.apache.hbase" % "hbase-testing-util" % "2.5.0" % Test,
       "org.testcontainers" % "testcontainers" % "1.17.3" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable._",

@@ -7,11 +7,11 @@ import org.apache.hadoop.hbase.client.{ColumnFamilyDescriptorBuilder, Connection
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class Initializer @Inject()() {
+class Initializer @Inject()(config: Conf) {
 
   {
     // A synchronous client for ease of use.
-    val connection = ConnectionFactory.createConnection()
+    val connection = ConnectionFactory.createConnection(config.getHadoopConfig())
 
     val admin = connection.getAdmin
 

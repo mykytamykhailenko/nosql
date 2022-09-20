@@ -1,6 +1,6 @@
 package com.aimprosoft.hbase
 
-import com.aimprosoft.hbase.Util.{AsyncTable, depNameTableName, depTableName, empByDepTableName, empTableName}
+import com.aimprosoft.hbase.Util._
 import org.apache.hadoop.hbase.client.{AsyncAdmin, AsyncConnection, ConnectionFactory}
 import play.api.inject.ApplicationLifecycle
 
@@ -9,9 +9,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.FutureConverters.CompletionStageOps
 
 @Singleton
-class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecycle)(implicit ec: ExecutionContext) {
+class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecycle, config: Conf)(implicit ec: ExecutionContext) {
 
-  val connection: Future[AsyncConnection] = ConnectionFactory.createAsyncConnection().asScala
+  val connection: Future[AsyncConnection] = {
+
+    ConnectionFactory.createAsyncConnection(config.getHadoopConfig()).asScala
+  }
 
   val departments: Future[AsyncTable] = connection.map(_.getTable(depTableName))
 
@@ -33,7 +36,8 @@ class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecy
     res.flatten
   }
 
-  private[dao] def truncateTables(admin: AsyncAdmin) = {
+  // For testing purpose only!
+  def truncateTables(admin: AsyncAdmin) = {
 
     val tables = Seq(depTableName, depNameTableName, empTableName, empByDepTableName)
 
@@ -47,7 +51,8 @@ class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecy
     Future.sequence(dropTables).map(_ => ())
   }
 
-  private[dao] def truncate(): Future[Unit] = {
+  // For testing purpose only!
+  def truncate(): Future[Unit] = {
 
     val truncation = for {
       admin <- connection.map(_.getAdmin)

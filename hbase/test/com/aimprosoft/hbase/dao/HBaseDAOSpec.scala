@@ -1,16 +1,17 @@
 package com.aimprosoft.hbase.dao
 
 import cats.data.OptionT
-import com.aimprosoft.hbase.dao.Util.ScalaCassandraContainer
-import com.aimprosoft.hbase.util.Util.{DepartmentDoesNotExist, DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
+import Util._
+import com.aimprosoft.hbase.AsyncConnectionLifecycle
 import com.aimprosoft.model.{Department, Employee}
-import Util.{ScalaCassandraContainer, cassandraPort, cassandraWaitDuration, once}
-import com.aimprosoft.hbase.util.Util.{DepartmentDoesNotExist, DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
-import com.outworkers.phantom.dsl.UUID
+import com.aimprosoft.util.DepException._
+import io.jvm.uuid.UUID
+import org.apache.hadoop.conf
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
 import org.specs2.mutable.Specification
 import org.specs2.specification.{BeforeAfterAll, BeforeEach}
+import org.testcontainers.containers.Network
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -20,37 +21,72 @@ import java.util.UUID.randomUUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
-class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
+class HBaseDAOSpec(implicit ee: ExecutionEnv) extends Specification
   with FutureMatchers
   with BeforeAfterAll
   with BeforeEach {
 
-  val cassandra: ScalaCassandraContainer =
-    new ScalaCassandraContainer(DockerImageName.parse("cassandra:4.0"))
-      .withInitScript("divisions.cql")
-      .withExposedPorts(cassandraPort)
-      .waitingFor(Wait.forLogMessage(".*Created default superuser role 'cassandra'.*", once))
-      .withStartupTimeout(cassandraWaitDuration)
+  /*
+  Previously, I wanted to boot up HBase and Play as two Docker containers.
+
+  1. HBase Java client requires the host machine to have the DNS entries for each HBase node.
+     In practice, this means:
+     1. The host machine must include those entries in /etc/hosts, which cannot be modified so easily:
+        1. You must create and remove the entries before and after tests
+        2. You must have proper privileges (sudo)
+
+        Fortunately, you can add those entries in Docker container on the fly using --add-host
+        https://www.cloudbees.com/blog/using-the-add-host-flag-for-dns-mapping-within-docker-containers
+
+    2. You could start them sequentially:
+        1. You would need to start HBase first, get its ports ('getMappedPort') and host ('getHost').
+        2. Start the Play app and provide HBase ports and host.
+        2. You would need to use WSClient to query the Play app.
+    3. You could run both apps in the same network in Docker Compose:
+        1. You would need to defined 'depends_on'
+        2. You will need to define the waiting strategy
+        3. Probably, you won't need to add entries to /etc/hosts because the network provides required DNS entries
+
+  I have found out there is a special class called 'TestingHBaseCluster'.
+
+  1. I won't need to start any containers, which saves a lot of time.
+  2. This is a proper solution, which will be easier to use.
+   */
+
+
+  val hbase: ScalaContainer =
+    new ScalaContainer(DockerImageName.parse("dajobe/hbase:latest"))
+      .withExposedPorts(zookeeperPort, masterPort, regionServerPort)
+      .withCreateContainerCmdModifier(cmd => cmd.withHostName("the-cache").add) // I may probably need that
+      // .waitingFor(Wait.forHttp("/rest.jsp").forPort(8085).forStatusCode(200))
+      .waitingFor(Wait.forLogMessage(".*Finished refreshing block distribution cache.*", once))
+      .withStartupTimeout(hbaseWaitDuration)
+
+  // docker run -h hbase -p 2181:2181 -p 16020:16020 -p 16000:16000 dajobe/hbase // WORKS!
+  // docker run -h localhost -p 2181:2181 -p 16020:16020 -p 16000:16000 // does not
 
   lazy val app: Application = new GuiceApplicationBuilder()
     .configure(
       Configuration(
-        "cassandra.host" -> cassandra.getHost,
-        "cassandra.port" -> cassandra.getMappedPort(cassandraPort),
-        "cassandra.user" -> cassandra.getUsername,
-        "cassandra.password" -> cassandra.getPassword,
-        "cassandra.keyspace" -> "divisions"))
+        "hbase.zookeeper.quorum" -> hbase.getHost,
+        "hbase.zookeeper.property.clientPort" -> hbase.getMappedPort(zookeeperPort),
+        "hbase.master.port" -> hbase.getMappedPort(masterPort),
+        "hbase.regionserver.port" -> hbase.getMappedPort(regionServerPort))
+    )
     .build()
 
   lazy val employees: EmployeeDAO = app.injector.instanceOf[EmployeeDAO]
 
   lazy val departments: DepartmentDAO = app.injector.instanceOf[DepartmentDAO]
 
-  def beforeAll(): Unit = cassandra.start()
+  lazy val lifeCycle = app.injector.instanceOf[AsyncConnectionLifecycle]
 
-  def afterAll(): Unit = cassandra.stop()
 
-  def before(): Unit = Await.result(departments.truncate().zip(employees.truncate()), 3.seconds)
+  def beforeAll(): Unit = hbase.start()
+
+  def afterAll(): Unit = hbase.stop()
+
+  def before(): Unit = () // Await.result(lifeCycle.truncate(), 3.seconds)
 
   "phantom app" should {
 
