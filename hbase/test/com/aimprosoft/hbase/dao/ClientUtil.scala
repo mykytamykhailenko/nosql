@@ -24,10 +24,12 @@ case class ClientUtil(client: StandaloneWSClient, host: String, port: Int)(impli
     client.url(createUrl(departments)).create(Department[UUID](None, name, description))
 
   def readDepartmentById(id: UUID) =
-    client.url(createUrlWithId(departments, id)).read()
+    client.url(createUrlWithId(departments, id)).get()
+      .map(v => Json.parse(v.body))
 
   def readAllDepartments() =
-    client.url(createUrl(departments)).read()
+    client.url(createUrl(departments)).get()
+      .map(v => Json.parse(v.body))
 
   def deleteDepartmentById(id: UUID) =
     client.url(createUrlWithId(departments, id)).delete().map(v => Json.parse(v.body))
@@ -68,6 +70,7 @@ object ClientUtil {
         .withHttpHeaders(CONTENT_TYPE -> JSON)
         .put(Json.toJson(value).toString)
         .map(v => Json.parse(v.body))
+
 
   }
 
