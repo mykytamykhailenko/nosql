@@ -5,7 +5,7 @@ import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxOptionId, none}
 import com.aimprosoft.hbase.AsyncConnectionLifecycle
 import com.aimprosoft.hbase.Util._
 import com.aimprosoft.model.{Affected, Employee}
-import com.aimprosoft.util.DepException.DepartmentDoesNotExist
+import com.aimprosoft.util.DepartmentExceptions.DepartmentDoesNotExist
 import io.jvm.uuid._
 import org.apache.hadoop.hbase.client.Scan
 

@@ -3,15 +3,15 @@ FROM sbtscala/scala-sbt:eclipse-temurin-11.0.15_1.7.1_2.13.8 AS build
 WORKDIR /home/build
 
 COPY common     ./common
-COPY phantom    ./phantom
+COPY hbase      ./hbase
 COPY project    ./project
 ADD  build.sbt  .
 
-RUN sbt phantom/universal:packageZipTarball
+RUN sbt hbase/universal:packageZipTarball
 
-WORKDIR phantom/target/universal
+WORKDIR hbase/target/universal
 
-RUN mv phantom-1.0.tgz phantom.tgz
+RUN mv hbase-1.0.tgz hbase.tgz
 
 FROM eclipse-temurin:11-jre-alpine
 
@@ -24,14 +24,15 @@ USER play
 
 WORKDIR /home/play
 
-COPY --from=build --chown=play:play /home/build/phantom/target/universal/phantom.tgz ./phantom.tgz
+COPY --from=build --chown=play:play /home/build/hbase/target/universal/hbase.tgz ./hbase.tgz
 
-ENV TOP_LEVEL_COMPONENT=1
-
-RUN tar -xzf phantom.tgz --strip-components ${TOP_LEVEL_COMPONENT} && rm phantom.tgz
+RUN tar -xzf hbase.tgz --strip-components 1 && rm hbase.tgz
 
 EXPOSE 9000
 
-ENTRYPOINT bin/phantom -Dplay.http.secret.key=$(head -c 32 /dev/urandom | base64)
+ENTRYPOINT bin/hbase -Dplay.http.secret.key=$(head -c 32 /dev/urandom | base64)
+
+
+
 
 

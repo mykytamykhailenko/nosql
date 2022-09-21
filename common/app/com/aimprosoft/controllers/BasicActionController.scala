@@ -4,6 +4,7 @@ import cats.Monad
 import com.aimprosoft.mat.Materializer
 import com.aimprosoft.model.Id
 import com.aimprosoft.service.TBasicService
+import com.aimprosoft.util.DepartmentExceptions.{DepartmentException, FutureOps}
 import com.google.inject.Inject
 import play.api.libs.json.{Format, JsValue, Json, Writes}
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
@@ -16,12 +17,12 @@ case class BasicActionController[F[_] : Monad : Materializer, K: Writes, M <: Id
 
   def create(): Action[JsValue] = Action.async(parse.json) { request =>
     val id = basicService.create(request.body.as[M])
-    mat.materialize(id).map(v => Created(Json.toJson(v)))
+    mat.materialize(id).map(v => Created(Json.toJson(v))).recoverDepartmentException()
   }
 
   def update(): Action[JsValue] = Action.async(parse.json) { request =>
     val affected = basicService.update(request.body.as[M])
-    mat.materialize(affected).map(v => Ok(Json.toJson(v)))
+    mat.materialize(affected).map(v => Ok(Json.toJson(v))).recoverDepartmentException()
   }
 
   def readAll(): Action[AnyContent] = Action.async { _ =>
@@ -33,7 +34,7 @@ case class BasicActionController[F[_] : Monad : Materializer, K: Writes, M <: Id
   }
 
   def deleteById(id: K): Action[AnyContent] = Action.async { _ =>
-    mat.materialize(basicService.deleteById(id)).map(v => Ok(Json.toJson(v)))
+    mat.materialize(basicService.deleteById(id)).map(v => Ok(Json.toJson(v))).recoverDepartmentException()
   }
 
 }

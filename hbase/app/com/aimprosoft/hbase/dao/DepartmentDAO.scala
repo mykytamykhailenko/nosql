@@ -6,7 +6,7 @@ import com.aimprosoft.dao.BasicDAO
 import com.aimprosoft.hbase.AsyncConnectionLifecycle
 import com.aimprosoft.hbase.Util._
 import com.aimprosoft.model.{Affected, Department}
-import com.aimprosoft.util.DepException.{DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
+import com.aimprosoft.util.DepartmentExceptions.{DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
 import com.google.inject.Inject
 import io.jvm.uuid._
 import org.apache.hadoop.hbase.client.{Result, Scan}
@@ -148,10 +148,11 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    */
   private[dao] def updateDepartment(departments: AsyncTable,
                                     names: AsyncTable,
+                                    oldDep: Department[UUID],
                                     dep: Department[UUID],
                                     currentTime: Long = currentTimeMillis()): Future[Option[Affected]] = {
 
-    val dropName = createDelete(toBytes(dep.name), currentTime)
+    val dropName = createDelete(toBytes(oldDep.name), currentTime)
 
     val deleteName = () => names.delete(dropName).asScala
 
@@ -171,24 +172,20 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
    *
    * @param departments The department table
    * @param names       The department name table
-   * @param division    The previous department
-   * @param name        The name
+   * @param oldDep      The previous department
    * @param dep         New department
+   * @param id      The id retrieved by the new department name
    * @return Affected departments
    */
   private[dao] def updateDivisionIfExists(departments: AsyncTable,
                                           names: AsyncTable,
-                                          division: Result,
-                                          name: Result,
-                                          dep: Department[UUID]): Future[Option[Affected]] = {
+                                          oldDep: Option[Department[UUID]],
+                                          dep: Department[UUID],
+                                          id: Option[UUID]): Future[Option[Affected]] = {
 
-    val divisionId = Option(division.getRow)
+    (oldDep, id) match {
 
-    val nameId = Option(name.value).map(UUID.apply)
-
-    (divisionId, nameId) match {
-
-      case (Some(_), None) => updateDepartment(departments, names, dep)
+      case (Some(old), None) => updateDepartment(departments, names, old, dep)
 
       case (Some(_), Some(id)) if id == dep.id.get => updateDescription(departments, dep)
 
@@ -199,6 +196,15 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
     }
   }
 
+  private[dao] def readIdByName(name: String): Future[Option[UUID]] = usingTables { case (_, names, _, _) =>
+
+    for {
+      naming <- names.get(createGet(toBytes(name))).asScala
+    } yield for {
+      idBytes <- Option(naming.value)
+    } yield UUID(idBytes)
+
+  }
 
   /**
    * Updates an existing department.
@@ -214,13 +220,13 @@ class DepartmentDAO @Inject()(connectionLifecycle: AsyncConnectionLifecycle, sys
 
     dep.id.fold(none[Affected].pure[Future]) { id =>
 
-      val department = departments.get(createGet(id.byteArray)).asScala
-      val naming = names.get(createGet(toBytes(dep.name))).asScala
+      val oldDepartment = readById(id)
+      val idByName = readIdByName(dep.name)
 
       val updated = for {
-        division <- department
-        name <- naming
-      } yield updateDivisionIfExists(departments, names, division, name, dep)
+        oldDep <- oldDepartment
+        id <- idByName
+      } yield updateDivisionIfExists(departments, names, oldDep, dep, id)
 
       updated.flatten
     }

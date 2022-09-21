@@ -1,299 +1,321 @@
 package com.aimprosoft.hbase.dao
 
-import cats.data.OptionT
-import Util._
-import com.aimprosoft.hbase.AsyncConnectionLifecycle
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import cats.implicits.catsSyntaxOptionId
+import com.aimprosoft.hbase.dao.ClientUtil.RequestOps
+import com.aimprosoft.hbase.dao.Util._
 import com.aimprosoft.model.{Department, Employee}
-import com.aimprosoft.util.DepException._
 import io.jvm.uuid.UUID
-import org.apache.hadoop.conf
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
 import org.specs2.mutable.Specification
-import org.specs2.specification.{BeforeAfterAll, BeforeEach}
+import org.specs2.specification.{AfterEach, BeforeAfterAll}
 import org.testcontainers.containers.Network
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.DockerImageName
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.{Application, Configuration}
+import org.testcontainers.utility.{DockerImageName, MountableFile}
+import play.api.libs.json.{JsNull, JsValue}
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
 
-import java.util.UUID.randomUUID
-import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+
 
 class HBaseDAOSpec(implicit ee: ExecutionEnv) extends Specification
   with FutureMatchers
   with BeforeAfterAll
-  with BeforeEach {
+  with AfterEach {
 
   /*
-  Previously, I wanted to boot up HBase and Play as two Docker containers.
+  I have found out there is a special class for testing HBase called 'TestingHBaseCluster'.
+  I have decided not to use 'TestingHBaseCluster' because of complex conflict resolution problems:
+   1. Play uses the most recent Guava version '31.0-jre', while HBase client needs '25.0-jre' at most.
+   2. Even if you force downgrade Guava version, you will encounter with significant issues with Servlets.
+   3. Upgrading Hadoop to Hadoop 3 solves problems with Guava, but introduces new ones.
+   4. Upgrading HBase client to '3.0.0-alpha-3' does not help neither (you will still encounter errors that some methods are not found)
 
-  1. HBase Java client requires the host machine to have the DNS entries for each HBase node.
-     In practice, this means:
-     1. The host machine must include those entries in /etc/hosts, which cannot be modified so easily:
-        1. You must create and remove the entries before and after tests
-        2. You must have proper privileges (sudo)
-
-        Fortunately, you can add those entries in Docker container on the fly using --add-host
-        https://www.cloudbees.com/blog/using-the-add-host-flag-for-dns-mapping-within-docker-containers
-
-    2. You could start them sequentially:
-        1. You would need to start HBase first, get its ports ('getMappedPort') and host ('getHost').
-        2. Start the Play app and provide HBase ports and host.
-        2. You would need to use WSClient to query the Play app.
-    3. You could run both apps in the same network in Docker Compose:
-        1. You would need to defined 'depends_on'
-        2. You will need to define the waiting strategy
-        3. Probably, you won't need to add entries to /etc/hosts because the network provides required DNS entries
-
-  I have found out there is a special class called 'TestingHBaseCluster'.
-
-  1. I won't need to start any containers, which saves a lot of time.
-  2. This is a proper solution, which will be easier to use.
+   Note: Intellij successfully runs tests, but sbt does not.
    */
 
+  implicit val system = ActorSystem()
+
+  implicit val materializer = ActorMaterializer()
+
+  val client: StandaloneAhcWSClient = StandaloneAhcWSClient()
+
+  val net: Network = Network.newNetwork()
 
   val hbase: ScalaContainer =
-    new ScalaContainer(DockerImageName.parse("dajobe/hbase:latest"))
-      .withExposedPorts(zookeeperPort, masterPort, regionServerPort)
-      .withCreateContainerCmdModifier(cmd => cmd.withHostName("the-cache").add) // I may probably need that
-      // .waitingFor(Wait.forHttp("/rest.jsp").forPort(8085).forStatusCode(200))
+    new ScalaContainer(hbaseDockerImage)
+      .withNetwork(net)
+      .withNetworkAliases(hbaseHostname)
+      .withCreateContainerCmdModifier(modifier => modifier.withHostName(hbaseHostname))
       .waitingFor(Wait.forLogMessage(".*Finished refreshing block distribution cache.*", once))
       .withStartupTimeout(hbaseWaitDuration)
+      .withCopyFileToContainer(MountableFile.forHostPath(setUpShBind, 700), setUpShName)
+      .withCopyFileToContainer(MountableFile.forHostPath(truncateAllShBind, 700), truncateAllShName)
 
-  // docker run -h hbase -p 2181:2181 -p 16020:16020 -p 16000:16000 dajobe/hbase // WORKS!
-  // docker run -h localhost -p 2181:2181 -p 16020:16020 -p 16000:16000 // does not
+  val app: ScalaContainer =
+    new ScalaContainer(DockerImageName.parse("playapp:hbase")) // I will later build everything from scratch
+      .dependsOn(hbase)
+      .withNetwork(net)
+      .withExposedPorts(playPort)
+      .withEnv(playConf)
+      .waitingFor(Wait.forHttp("/health"))
 
-  lazy val app: Application = new GuiceApplicationBuilder()
-    .configure(
-      Configuration(
-        "hbase.zookeeper.quorum" -> hbase.getHost,
-        "hbase.zookeeper.property.clientPort" -> hbase.getMappedPort(zookeeperPort),
-        "hbase.master.port" -> hbase.getMappedPort(masterPort),
-        "hbase.regionserver.port" -> hbase.getMappedPort(regionServerPort))
-    )
-    .build()
+  lazy val host: String = app.getHost
 
-  lazy val employees: EmployeeDAO = app.injector.instanceOf[EmployeeDAO]
+  lazy val port: Int = app.getMappedPort(playPort)
 
-  lazy val departments: DepartmentDAO = app.injector.instanceOf[DepartmentDAO]
+  def beforeAll(): Unit = {
+    hbase.start()
+    hbase.execInContainer(setUpShName)
+    app.start()
+  }
 
-  lazy val lifeCycle = app.injector.instanceOf[AsyncConnectionLifecycle]
+  def afterAll(): Unit = {
+    app.stop()
+    hbase.stop()
+  }
 
+  def after(): Unit = hbase.execInContainer(truncateAllShName)
 
-  def beforeAll(): Unit = hbase.start()
+  lazy val helpers: ClientUtil = ClientUtil(client, host, port)
 
-  def afterAll(): Unit = hbase.stop()
+  import helpers._
 
-  def before(): Unit = () // Await.result(lifeCycle.truncate(), 3.seconds)
+  // This is a must!
+  sequential
 
-  "phantom app" should {
+  "hbase app" should {
 
-    "employee DAO" should {
-
-      "insert an employee with random department" in {
-        employees.create(Employee(None, randomUUID(), "Will", "Smith")) must throwA[DepartmentDoesNotExist].await
-      }
-
-      "insert an employee with id" in {
-        employees.create(Employee(Some(randomUUID()), randomUUID(), "Will", "Smith")) must beNone.await
-      }
-
-      "insert an employee and read him by id (check 'employee' table)" in {
-
-        val employee = for {
-          dip <- OptionT(departments.create(Department(None, "Agriculture", "")))
-          eid <- OptionT(employees.create(Employee(None, dip, "Mike", "")))
-          worker <- OptionT(employees.readById(eid))
-        } yield worker
-
-        employee.value must beSome[Employee[UUID]]().await
-      }
-
-      "insert a few employees and read them (check 'employee_by_department_id' table)" in {
-
-        val workers = for {
-          did <- departments.create(Department(None, "Agriculture", ""))
-
-          _ <- employees.create(Employee(None, did.get, "Mike", ""))
-          _ <- employees.create(Employee(None, did.get, "Michel", ""))
-          _ <- employees.create(Employee(None, did.get, "Ivan", ""))
-
-        } yield employees.getEmployeesByDepartmentId(did.get)
-
-        workers.flatten.map(_.size) must be_===(3).await
-      }
-
-      "delete an employee and check if 'employee' and 'employee_by_department_id' do not contain the employee anymore" in {
-
-        val deleted = for {
-
-          did <- departments.create(Department[UUID](None, "QA", ""))
-          eid <- employees.create(Employee[UUID](None, did.get, "Mike", ""))
-
-          _ <- employees.deleteById(eid.get)
-
-          employeeById <- employees.readById(eid.get)
-          employeesByDepartment <- employees.getEmployeesByDepartmentId(did.get)
-
-        } yield employeeById.isEmpty && employeesByDepartment.isEmpty
-
-        deleted must beTrue.await
-      }
-
-      "update an employee and change the department, which exist" in {
-
-        val updated = for {
-
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          dev <- departments.create(Department[UUID](None, "Dev", ""))
-          eid <- employees.create(Employee[UUID](None, qa.get, "Mike", ""))
-
-          _ <- employees.update(Employee(Some(eid.get), dev.get, "Mike", "Light"))
-
-          // The delete operation must come before the insert. Otherwise this line is None.
-          worker <- employees.readById(eid.get)
-
-        } yield worker
-
-        updated must beSome[Employee[UUID]].await
-      }
-
-      "update an employee and do not change the department" in {
-
-        val updated = for {
-
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          eid <- employees.create(Employee[UUID](None, qa.get, "Mike", ""))
-
-          _ <- employees.update(Employee(Some(eid.get), qa.get, "Mike", "Light"))
-
-          worker <- employees.readById(eid.get)
-
-        } yield worker
-
-        updated must beSome[Employee[UUID]].await
-      }
-
-      "update an employee, who doesn't exist" in {
-
-        val updated = for {
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          up <- employees.update(Employee(Some(randomUUID()), qa.get, "Mike", "Light"))
-        } yield up
-
-        updated must beSome(0).await
-      }
-
-      "update an employee and change department to random department" in {
-
-        val updated = for {
-
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          eid <- employees.create(Employee[UUID](None, qa.get, "Mike", ""))
-
-          up <- employees.update(Employee(Some(eid.get), randomUUID(), "Mike", "Light"))
-
-        } yield up
-
-        updated must throwA[DepartmentDoesNotExist].await
-      }
+    "fail to insert an employee with random department" in {
+      createEmployee(UUID.random, "Will", "Smith")
+        .map(response => (response \ "message").as[String]) must be.await
     }
 
-    "department DAO" should {
+    "refuse to insert an employee with random id" in {
+      client.url(createUrl(employees))
+        .create(Employee(UUID.random.some, UUID.random, "Will", "Smith")) must be_===[JsValue](JsNull).await
+    }
 
-      "prevent user from creating tow departments with the same name at the same time" in {
+    "refuse to insert a department with random id" in {
+      client.url(createUrl(departments))
+        .create(Department(UUID.random.some, "Scala", "")) must be_===[JsValue](JsNull).await
+    }
 
-        val creation = for {
-          _ <- departments.create(Department[UUID](None, "QA", ""))
-          _ <- departments.create(Department[UUID](None, "QA", ""))
-        } yield ()
+    "insert a department" in {
+      createDepartment("Scala", "").map(_.asOpt[UUID]) must beSome[UUID].await
+    }
 
-        creation must throwA[DepartmentNameIsAlreadyTaken].await
-      }
+    "read a department" in {
 
-      "free occupied names if the respective department gets deleted" in {
+      val dep = for {
+        id <- createDepartment("Scala", "").map(_.as[UUID])
+        dep <- readDepartmentById(id)
+      } yield dep.asOpt[Department[UUID]]
 
-        val division = for {
-          id <- departments.create(Department[UUID](None, "QA", "testing"))
-          _ <- departments.deleteById(id.get)
-          dep <- departments.create(Department[UUID](None, "QA", "test automation"))
-        } yield dep
+      dep must beSome[Department[UUID]]().await
+    }
 
-        division must beSome[UUID].await
-      }
+    "disallow inserting two departments with the same name" in {
 
-      "fail to drop a department if it has employees" in {
+      val fullStack = for {
+        _ <- createDepartment("Scala", "big data")
+        dep <- createDepartment("Scala", "full stack")
+      } yield dep
 
-        val division = for {
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          _ <- employees.create(Employee(None, qa.get, "Mike", ""))
-          _ <- departments.deleteById(qa.get)
-        } yield ()
+      fullStack.map(response => (response \ "message").as[String]) must contain("Scala").await
+    }
 
-        division must throwA[DepartmentIsNotEmpty].await
-      }
+    "read all departments" in {
 
-      "fail to update a department if the name is already taken" in {
+      val departments = for {
+        _ <- createDepartment("Scala", "")
+        _ <- createDepartment("Java", "")
+        divisions <- readAllDepartments()
+      } yield divisions.as[Seq[Department[UUID]]]
 
-        val division = for {
+      departments.map(_.size) must be_===(2).await
+    }
 
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-          dev <- departments.create(Department[UUID](None, "Dev", ""))
+    "delete a department and create it again" in {
 
-          _ <- departments.update(Department(Some(qa.get), "Dev", ""))
+      // When the department gets deleted, its name must be deleted too.
+      val department = for {
+        id <- createDepartment("Scala", "")
+        _ <- deleteDepartmentById(id.as[UUID])
+        division <- createDepartment("Scala", "")
+      } yield division.asOpt[UUID]
 
-        } yield ()
-
-        division must throwA[DepartmentNameIsAlreadyTaken].await
-      }
-
-      "update a department's name (it has not been taken yet)" in {
-
-        val division = for {
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-
-          _ <- departments.update(Department(Some(qa.get), "Dev", "testing"))
-
-          div <- departments.readById(qa.get)
-
-        } yield div.map(_.name)
-
-        division must beSome("Dev").await
-      }
-
-      "update a department's description" in {
-
-        val division = for {
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-
-          _ <- departments.update(Department(Some(qa.get), "QA", "testing"))
-
-          div <- departments.readById(qa.get)
-
-        } yield div
-
-        division must beSome[Department[UUID]].await
-      }
-
-      "the departments' names must be freed (you can created another department, which has the same name as the previously updated department)" in {
-
-        val division = for {
-          qa <- departments.create(Department[UUID](None, "QA", ""))
-
-          _ <- departments.update(Department(Some(qa.get), "Dev", ""))
-
-          anotherQA <- departments.create(Department[UUID](None, "QA", ""))
-
-          div <- departments.readById(anotherQA.get)
-
-        } yield div
-
-        division must beSome[Department[UUID]].await
-      }
+      department must beSome[UUID]().await
 
     }
+
+    "fail to delete a department with employees" in {
+
+      val deletion = for {
+        id <- createDepartment("Scala", "")
+        _ <- createEmployee(id.as[UUID], "John", "")
+        drop <- deleteDepartmentById(id.as[UUID])
+      } yield drop
+
+      deletion.map(response => (response \ "message").as[String]) must contain("is not empty").await
+    }
+
+    "it must be impossible to create an employee belonging to a deleted department" in {
+
+      val creation = for {
+        id <- createDepartment("Scala", "")
+        _ <- deleteDepartmentById(id.as[UUID])
+        create <- createEmployee(id.as[UUID], "John", "")
+      } yield create
+
+      creation.map(response => (response \ "message").as[String]) must contain("does not exist").await
+    }
+
+    "the department must not change its name to a name, which is already taken" in {
+
+      val updated = for {
+        id <- createDepartment("Java", "")
+        _ <- createDepartment("Scala", "")
+        up <- updateDepartment(Department(id.asOpt[UUID], "Scala", ""))
+      } yield up
+
+      updated.map(response => (response \ "message").as[String]) must contain("is already taken").await
+
+
+    }
+
+    "the department must update description only" in {
+
+      val desc = for {
+        id <- createDepartment("Java", "")
+        _ <- updateDepartment(Department(id.asOpt[UUID], "Java", "Liferay solutions"))
+        dep <- readDepartmentById(id.as[UUID])
+      } yield dep.as[Department[UUID]].description
+
+
+      desc must be_===("Liferay solutions").await
+    }
+
+    "update the department while freeing space" in {
+
+      val desc = for {
+        id <- createDepartment("Java", "")
+        _ <- updateDepartment(Department(id.asOpt[UUID], "Scala", ""))
+        dep <- createDepartment("Java", "")
+      } yield dep
+
+
+      desc.map(_.asOpt[UUID]) must beSome[UUID].await
+    }
+
+    "update nothing because the department does not exists" in {
+      updateDepartment(Department(UUID.random.some, "Scala", "")).map(_.as[Int]) must be_===(0).await
+    }
+
+    "read all employees by department" in {
+
+      val employees = for {
+        scala <- createDepartment("Scala", "")
+        java <- createDepartment("Java", "")
+
+        _ <- createEmployee(scala.as[UUID], "Mike", "")
+        _ <- createEmployee(scala.as[UUID], "John", "")
+        _ <- createEmployee(java.as[UUID], "Michel", "")
+
+        workers <- readEmployeesByDepartmentId(scala.as[UUID])
+      } yield workers.as[Seq[Employee[UUID]]].map(_.name)
+
+      employees must contain("Mike", "John").await
+    }
+
+    "deleted employees should not be found by their department" in {
+
+      val departmentId = for {
+        scala <- createDepartment("Scala", "")
+        id <- createEmployee(scala.as[UUID], "Mike", "")
+        _ <- deleteEmployeeById(id.as[UUID])
+      } yield scala.as[UUID]
+
+      val workerByDepId = for {
+        id <- departmentId
+        workerByDepId <- readEmployeesByDepartmentId(id)
+      } yield workerByDepId.as[Seq[Employee[UUID]]]
+
+      val workerById = for {
+        id <- departmentId
+        workerById <- readEmployeeById(id)
+      } yield workerById.asOpt[Employee[UUID]]
+
+      workerByDepId must be_===(Seq[Employee[UUID]]()).await
+      workerById must beNone.await
+    }
+
+    "update employees name and surname without changing department" in {
+
+      val ids = for {
+        scala <- createDepartment("Scala", "")
+        id <- createEmployee(scala.as[UUID], "Mike", "Mike")
+      } yield scala.as[UUID] -> id.as[UUID]
+
+      val changed = for {
+        (scala, worker) <- ids
+        _ <- updateEmployee(Employee(worker.some, scala, "Shon", "Shon"))
+      } yield ()
+
+      val workerById = for {
+        (_, worker) <- ids
+        _ <- changed
+        workerById <- readEmployeeById(worker)
+      } yield workerById.asOpt[Employee[UUID]].map(_.name)
+
+      val workerByDepId = for {
+        (scala, _) <- ids
+        _ <- changed
+        workerByDepId <- readEmployeesByDepartmentId(scala)
+      } yield workerByDepId.as[Seq[Employee[UUID]]].map(_.name)
+
+      workerById must beSome("Shon").awaitFor(10.seconds)
+      workerByDepId must be_===(Seq("Shon")).awaitFor(10.seconds)
+    }
+
+    "update employee while changing department" in {
+      val ids = for {
+        scala <- createDepartment("Scala", "")
+        java <- createDepartment("Java", "")
+        id <- createEmployee(scala.as[UUID], "Mike", "Mike")
+      } yield (scala.as[UUID], java.as[UUID], id.as[UUID])
+
+      val changed = for {
+        (_, java, worker) <- ids
+        _ <- updateEmployee(Employee(worker.some, java, "Shon", "Shon"))
+      } yield ()
+
+
+      val workerById = for {
+        (_, _, worker) <- ids
+        _ <- changed
+        workerById <- readEmployeeById(worker)
+      } yield workerById.asOpt[Employee[UUID]].map(_.name)
+
+      val workerByDepId = for {
+        (_, java, _) <- ids
+        _ <- changed
+        workerByDepId <- readEmployeesByDepartmentId(java)
+      } yield workerByDepId.as[Seq[Employee[UUID]]].map(_.name)
+
+      val workerByPreviousDepId = for {
+        (scala, _, _) <- ids
+        _ <- changed
+        workerByDepId <- readEmployeesByDepartmentId(scala)
+      } yield workerByDepId.asOpt[Employee[UUID]]
+
+      workerById must beSome("Shon").await
+      workerByDepId must be_===(Seq("Shon")).await
+      workerByPreviousDepId must beNone.await
+    }
+
 
   }
 

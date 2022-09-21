@@ -4,7 +4,7 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET             /health                         com.aimprosoft.controllers.HealthcheckController.healthCheck()
+GET             /health                          com.aimprosoft.controllers.HealthcheckController.healthCheck()
 
 GET             /departments                     com.aimprosoft.hbase.controller.HBaseDepartmentController.readAll()
 GET             /departments/:id                 com.aimprosoft.hbase.controller.HBaseDepartmentController.readById(id: UUID)

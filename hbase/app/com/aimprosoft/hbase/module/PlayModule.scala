@@ -2,7 +2,6 @@ package com.aimprosoft.hbase.module
 
 import cats.Monad
 import com.aimprosoft.dao.BasicDAO
-import com.aimprosoft.hbase.Initializer
 import com.aimprosoft.hbase.dao.DepartmentDAO
 import com.aimprosoft.hbase.service.{DepartmentService, EmployeeService}
 import com.aimprosoft.mat.Materializer
@@ -17,7 +16,6 @@ import scala.concurrent.Future
 
 class PlayModule extends AbstractModule {
   override def configure(): Unit = {
-    bind(classOf[Initializer]).asEagerSingleton()
 
     bind(new TypeLiteral[Materializer[Future]] {}).toInstance(futureMaterializer)
 

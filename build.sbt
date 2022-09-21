@@ -46,7 +46,6 @@ lazy val doobie = (project in file("doobie"))
   .settings(
     scalaVersion := "2.13.6",
     Test / fork := true,
-    Test / javaOptions += confJavaOption,
     libraryDependencies ++= Seq(
       guice,
       "io.monix" %% "monix" % "3.4.1",
@@ -98,13 +97,12 @@ lazy val hbase = (project in file("hbase"))
     libraryDependencies ++= Seq(
       guice,
       ws,
-      "org.apache.hadoop" % "hadoop-core" % "1.2.1",
-      "org.apache.hbase" % "hbase" % "2.4.14",
-      "org.apache.hbase" % "hbase-client" % "2.4.14",
+      "org.apache.hbase" % "hbase" % "2.5.0",
+      "org.apache.hbase" % "hbase-common" % "2.5.0",
+      "org.apache.hbase" % "hbase-client" % "2.5.0",
       specs2 % Test,
       "io.jvm.uuid" %% "scala-uuid" % "0.3.1",
       "org.mockito" % "mockito-core" % "4.8.0" % Test,
-      "org.apache.hbase" % "hbase-testing-util" % "2.5.0" % Test,
       "org.testcontainers" % "testcontainers" % "1.17.3" % Test),
     routesImport ++= Seq(
       "com.aimprosoft.controllers.Bindable._",

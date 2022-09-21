@@ -13,7 +13,7 @@ class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecy
 
   val connection: Future[AsyncConnection] = {
 
-    ConnectionFactory.createAsyncConnection(config.getHadoopConfig()).asScala
+    ConnectionFactory.createAsyncConnection(config.getHadoopConfig).asScala
   }
 
   val departments: Future[AsyncTable] = connection.map(_.getTable(depTableName))
@@ -34,31 +34,6 @@ class AsyncConnectionLifecycle @Inject()(applicationLifecycle: ApplicationLifecy
     } yield calc((dep, name, emp, empByDep))
 
     res.flatten
-  }
-
-  // For testing purpose only!
-  def truncateTables(admin: AsyncAdmin) = {
-
-    val tables = Seq(depTableName, depNameTableName, empTableName, empByDepTableName)
-
-    val dropTables = for {
-      table <- tables
-    } yield for {
-      _ <- admin.disableTable(table).asScala
-      _ <- admin.deleteTable(table).asScala
-    } yield ()
-
-    Future.sequence(dropTables).map(_ => ())
-  }
-
-  // For testing purpose only!
-  def truncate(): Future[Unit] = {
-
-    val truncation = for {
-      admin <- connection.map(_.getAdmin)
-    } yield truncateTables(admin)
-
-    truncation.flatten
   }
 
   applicationLifecycle.addStopHook(() => connection.map(_.close()))
