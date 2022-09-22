@@ -42,24 +42,6 @@ object Util {
   val uuidBytes: ByteArray = Bytes.toBytes("uuid")
 
 
-  /*
-  'department_name' -> 128
-  'name' -> 32
-  'surname' -> 32
-  'uuid' - 16
-   */
-
-  // I will need to add validation
-
-  // 'department_name' -> 'dp:id''department_id'
-  def getDivisionNameBytes(v: Department[UUID]): ByteArray = Bytes.toBytes(v.name)
-
-  // Updates will become more simple, because I do not need to update the row key.
-  // Again, 'name' must not be a part of the primary key.
-  // 'department_id' -> 'dp:name''department_name'
-  //                 -> 'dp:desc''description'
-  def getDivisionIdBytes(v: Department[UUID]): ByteArray = v.id.get.byteArray
-
   def byteArrayToString(value: ByteArray) = new String(value, StandardCharsets.UTF_8)
 
 
@@ -75,18 +57,7 @@ object Util {
       qualifiers("sn"))
   }
 
-  def getEmployeeOpt(data: Result): Option[Employee[UUID]] = if (data.isEmpty) None
-  else {
-    val qualifiers = data.getFamilyMap(employeeBytes).asScala.map { case (qualifier, value) =>
-      byteArrayToString(qualifier) -> byteArrayToString(value)
-    }
-
-    Some(Employee(
-      Some(UUID(data.getRow)),
-      UUID(data.getValue(employeeBytes, departmentBytes)),
-      qualifiers("name"),
-      qualifiers("sn")))
-  }
+  def getEmployeeOpt(data: Result): Option[Employee[UUID]] = if (data.isEmpty) None else Some(getEmployee(data))
 
   def getDepartment(data: Result) = {
     val qualifiers = data.getFamilyMap(departmentBytes).asScala.map { case (qualifier, value) =>
@@ -99,17 +70,7 @@ object Util {
       qualifiers("desc"))
   }
 
-  def getDepartmentOpt(data: Result): Option[Department[UUID]] = if (data.isEmpty) None else {
-    val qualifiers = data.getFamilyMap(departmentBytes).asScala.map { case (qualifier, value) =>
-      byteArrayToString(qualifier) -> byteArrayToString(value)
-    }
-
-    Some(Department(
-      Some(UUID(data.getRow)),
-      qualifiers("name"),
-      qualifiers("desc")))
-  }
-
+  def getDepartmentOpt(data: Result): Option[Department[UUID]] = if (data.isEmpty) None else Some(getDepartment(data))
 
   def createPutForDepartment(division: Department[UUID], currentTime: Long) =
 
@@ -133,34 +94,6 @@ object Util {
       departmentBytes -> employee.departmentId.byteArray,
     ))
 
-
-
-  // Previously, I included name and surname in the primary key.
-  // But in fact, they were redundant.
-  // If I want to query employees by 'surname' and 'name' I would need to create another table.
-  // Materialized views would not work here because 'surname' and 'name' are not included in the materialized views.
-  //
-  //
-  // 'employee_id' -> 'em:dp''department_id'
-  //               -> 'em:name''name'
-  //               -> 'em:sn''surname'
-  def buildEmpKeyAsByteArray(v: Employee[UUID]): ByteArray = v match {
-    case Employee(Some(em), _, name, surname) =>
-      ByteBuffer.allocate(80)
-        .put(em.byteArray, 0, 16)
-        .put(Bytes.toBytes(surname), 16, 32)
-        .put(Bytes.toBytes(name), 48, 32)
-        .array()
-  }
-
-
-  // 1. I could store UUIDs as string, but they take up a lot of space.
-  // Sparse keys save up 32 bytes.
-  // Such key design should work relatively quickly
-  //
-  //
-  //
-  // 'department_id''surname''name''employee_id' -> 'em:'''
   def createEmployeeWideKey(v: Employee[UUID]): ByteArray = v match {
     case Employee(Some(em), dp, name, surname) =>
       ByteBuffer.allocate(96)
@@ -229,7 +162,6 @@ object Util {
 
   def retries[T](op: () => Future[T])(implicit ec: ExecutionContext, scheduler: Scheduler): Future[T] =
     retry(op, attempts = 1024, minBackoff = 1.second, maxBackoff = 24.hours, randomFactor = 0.005)
-
 
 
 }
