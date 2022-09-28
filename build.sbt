@@ -112,4 +112,24 @@ lazy val hbase = (project in file("hbase"))
   )
   .enablePlugins(PlayScala)
 
-
+lazy val mongo = (project in file("mongo"))
+  .dependsOn(root)
+  .settings(
+    scalaVersion := "2.13.6",
+    Test / fork := true,
+    Test / javaOptions += confJavaOption,
+    libraryDependencies ++= Seq(
+      guice,
+      "io.jvm.uuid" %% "scala-uuid" % "0.3.1",
+      "org.mongodb.scala" %% "mongo-scala-driver" % "4.7.1",
+      "org.specs2" %% "specs2-core" % "4.16.1" % Test,
+      "org.mockito" % "mockito-core" % "4.8.0" % Test,
+      "org.testcontainers" % "testcontainers" % "1.17.3" % Test,
+      "org.testcontainers" % "mongodb" % "1.17.3" % Test),
+    routesImport ++= Seq(
+      "com.aimprosoft.controllers.Bindable._",
+      "com.aimprosoft.model._",
+      "java.util.UUID"),
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+  )
+  .enablePlugins(PlayScala)

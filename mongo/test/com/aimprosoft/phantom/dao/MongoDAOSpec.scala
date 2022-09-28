@@ -2,13 +2,17 @@ package com.aimprosoft.phantom.dao
 
 import cats.data.OptionT
 import com.aimprosoft.model.{Department, Employee}
-import com.aimprosoft.phantom.dao.Util.{ScalaCassandraContainer, cassandraPort, cassandraWaitDuration, once}
+import com.aimprosoft.mongo.connection.Connection
+import com.aimprosoft.mongo.dao.{DepartmentDAO, EmployeeDAO}
+import com.aimprosoft.mongo.module.PlayModule
+import com.aimprosoft.phantom.dao.Util.ScalaMongoContainer
 import com.aimprosoft.util.DepartmentExceptions.{DepartmentDoesNotExist, DepartmentIsNotEmpty, DepartmentNameIsAlreadyTaken}
-import com.outworkers.phantom.dsl.UUID
+import io.jvm.uuid.UUID
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.matcher.FutureMatchers
 import org.specs2.mutable.Specification
 import org.specs2.specification.{BeforeAfterAll, BeforeEach}
+import org.testcontainers.containers.{GenericContainer, MongoDBContainer}
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -18,39 +22,48 @@ import java.util.UUID.randomUUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
-class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
+class MongoDAOSpec(implicit ee: ExecutionEnv) extends Specification
   with FutureMatchers
   with BeforeAfterAll
   with BeforeEach {
 
-  val cassandra: ScalaCassandraContainer =
-    new ScalaCassandraContainer(DockerImageName.parse("cassandra:4.0"))
-      .withInitScript("divisions.cql")
-      .withExposedPorts(cassandraPort)
-      .waitingFor(Wait.forLogMessage(".*Created default superuser role 'cassandra'.*", once))
-      .withStartupTimeout(cassandraWaitDuration)
+  // I must have added indexes.
+  val mongo =
+    new ScalaMongoContainer(DockerImageName.parse("mongo:4.4"))
+      .withExposedPorts(27017)
+      .withEnv("MONGO_INITDB_ROOT_USERNAME", "root")
+      .withEnv("MONGO_INITDB_ROOT_PASSWORD", "root")
+      .withEnv("MONGO_INITDB_DATABASE", "departments")
+      .withCommand("--auth")
+      .waitingFor(Wait.forLogMessage("(?i).*Waiting for connections*.*", 1))
 
   lazy val app: Application = new GuiceApplicationBuilder()
     .configure(
       Configuration(
-        "cassandra.host" -> cassandra.getHost,
-        "cassandra.port" -> cassandra.getMappedPort(cassandraPort),
-        "cassandra.user" -> cassandra.getUsername,
-        "cassandra.password" -> cassandra.getPassword,
-        "cassandra.keyspace" -> "divisions"))
+        "mongo.host" -> mongo.getHost,
+        "mongo.port" -> mongo.getMappedPort(27017),
+        "mongo.user" -> "root",
+        "mongo.password" -> "root",
+        "mongo.database" -> "admin"))
+    .overrides(new PlayModule)
     .build()
 
   lazy val employees: EmployeeDAO = app.injector.instanceOf[EmployeeDAO]
 
   lazy val departments: DepartmentDAO = app.injector.instanceOf[DepartmentDAO]
 
-  def beforeAll(): Unit = cassandra.start()
+  lazy val connection: Connection = app.injector.instanceOf[Connection]
 
-  def afterAll(): Unit = cassandra.stop()
+  def beforeAll(): Unit = mongo.start()
 
-  def before(): Unit = Await.result(departments.truncate().zip(employees.truncate()), 3.seconds)
+  def afterAll(): Unit = {
+    connection.client.close()
+    mongo.stop()
+  }
 
-  "phantom app" should {
+  def before(): Unit = connection.truncate()
+
+  "mongo app" should {
 
     "employee DAO" should {
 
@@ -62,7 +75,7 @@ class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
         employees.create(Employee(Some(randomUUID()), randomUUID(), "Will", "Smith")) must beNone.await
       }
 
-      "insert an employee and read him by id (check 'employee' table)" in {
+      "insert an employee and read him by id" in {
 
         val employee = for {
           dip <- OptionT(departments.create(Department(None, "Agriculture", "")))
@@ -73,7 +86,7 @@ class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
         employee.value must beSome[Employee[UUID]]().await
       }
 
-      "insert a few employees and read them (check 'employee_by_department_id' table)" in {
+      "insert a few employees and read them" in {
 
         val workers = for {
           did <- departments.create(Department(None, "Agriculture", ""))
@@ -87,7 +100,7 @@ class PhantomDAOSpec(implicit ee: ExecutionEnv) extends Specification
         workers.flatten.map(_.size) must be_===(3).await
       }
 
-      "delete an employee and check if 'employee' and 'employee_by_department_id' do not contain the employee anymore" in {
+      "delete an employee and check if it is not present anywhere" in {
 
         val deleted = for {
 

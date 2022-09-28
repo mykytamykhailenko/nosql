@@ -1,0 +1,26 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+# An example controller showing a sample home page
+GET             /health                         com.aimprosoft.controllers.HealthcheckController.healthCheck()
+
+GET             /departments                     com.aimprosoft.mongo.controller.MongoDepartmentController.readAll()
+GET             /departments/:id                 com.aimprosoft.mongo.controller.MongoDepartmentController.readById(id: UUID)
+GET             /departments/:id/employees       com.aimprosoft.mongo.controller.MongoEmployeeController.getEmployeesByDepartmentId(id: UUID)
+POST            /departments                     com.aimprosoft.mongo.controller.MongoDepartmentController.create()
+PUT             /departments                     com.aimprosoft.mongo.controller.MongoDepartmentController.update()
+DELETE          /departments/:id                 com.aimprosoft.mongo.controller.MongoDepartmentController.deleteById(id: UUID)
+
+
+GET             /employees                       com.aimprosoft.mongo.controller.MongoEmployeeController.readAll()
+GET             /employees/:id                   com.aimprosoft.mongo.controller.MongoEmployeeController.readById(id: UUID)
+GET             /employees/:id/departments       com.aimprosoft.mongo.controller.MongoEmployeeController.getCompleteEmployeeById(id: UUID)
+POST            /employees                       com.aimprosoft.mongo.controller.MongoEmployeeController.create()
+PUT             /employees                       com.aimprosoft.mongo.controller.MongoEmployeeController.update()
+DELETE          /employees/:id                   com.aimprosoft.mongo.controller.MongoEmployeeController.deleteById(id: UUID)
+
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

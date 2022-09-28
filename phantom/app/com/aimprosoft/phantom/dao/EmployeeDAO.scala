@@ -4,7 +4,7 @@ import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxOptionId, none}
 import com.aimprosoft.model.{Affected, Employee}
 import com.aimprosoft.phantom.database.DepartmentDatabase
 import com.aimprosoft.phantom.util.Util._
-import com.aimprosoft.util.DepException._
+import com.aimprosoft.util.DepartmentExceptions._
 import com.outworkers.phantom.dsl._
 
 import java.util.UUID.{randomUUID => uuid}
